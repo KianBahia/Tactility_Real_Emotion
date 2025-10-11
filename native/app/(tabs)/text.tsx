@@ -23,25 +23,64 @@ export default function TextScreen() {
   const { addToHistory, addShortcut, settings } = useApp();
   const [text, setText] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [highlightedText, setHighlightedText] = useState("");
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(-1);
+  const isSpeakingRef = useRef(false);
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     if (!text) return;
 
     addToHistory(text);
 
-    Speech.speak(text, {
-      rate: settings.rate,
-      pitch: settings.pitch,
-      onStart: () => setIsPlaying(true),
-      onDone: () => setIsPlaying(false),
-      onStopped: () => setIsPlaying(false),
-    });
+    // Split text by newlines to get sentences
+    const sentences = text.split("\n").filter((s) => s.trim().length > 0);
+
+    if (!settings.highlightSpokenText || sentences.length === 0) {
+      // If highlighting is off or no sentences, just speak the whole text
+      Speech.speak(text, {
+        rate: settings.rate,
+        pitch: settings.pitch,
+        onStart: () => setIsPlaying(true),
+        onDone: () => {
+          setIsPlaying(false);
+          setCurrentSentenceIndex(-1);
+        },
+        onStopped: () => {
+          setIsPlaying(false);
+          setCurrentSentenceIndex(-1);
+        },
+      });
+      return;
+    }
+
+    // Speak each sentence with highlighting
+    setIsPlaying(true);
+    isSpeakingRef.current = true;
+
+    for (let i = 0; i < sentences.length; i++) {
+      if (!isSpeakingRef.current) break;
+
+      setCurrentSentenceIndex(i);
+
+      await new Promise<void>((resolve) => {
+        Speech.speak(sentences[i], {
+          rate: settings.rate,
+          pitch: settings.pitch,
+          onDone: () => resolve(),
+          onStopped: () => resolve(),
+        });
+      });
+    }
+
+    isSpeakingRef.current = false;
+    setIsPlaying(false);
+    setCurrentSentenceIndex(-1);
   };
 
   const handlePause = () => {
     Speech.stop();
+    isSpeakingRef.current = false;
     setIsPlaying(false);
+    setCurrentSentenceIndex(-1);
   };
 
   const handleAddShortcut = () => {
@@ -99,22 +138,55 @@ export default function TextScreen() {
           >
             {/* Text Area */}
             <View style={styles.textArea}>
-              <TextInput
-                value={text}
-                onChangeText={setText}
-                placeholder="Start typing..."
-                placeholderTextColor={Colors[colorScheme ?? "light"].icon}
-                style={[
-                  styles.textInput,
-                  { color: Colors[colorScheme ?? "light"].text },
-                  settings.highlightSpokenText && highlightedText
-                    ? styles.highlightedText
-                    : null,
-                ]}
-                multiline
-                textAlignVertical="top"
-                autoFocus={false}
-              />
+              {settings.highlightSpokenText &&
+              isPlaying &&
+              currentSentenceIndex >= 0 ? (
+                <View style={styles.highlightContainer}>
+                  <ScrollView>
+                    {text.split("\n").map((sentence, index) => (
+                      <Text
+                        key={index}
+                        style={[
+                          styles.highlightedSentence,
+                          {
+                            color:
+                              index === currentSentenceIndex
+                                ? "#000000"
+                                : Colors[colorScheme ?? "light"].text,
+                          },
+                          index === currentSentenceIndex &&
+                            styles.activeSentence,
+                        ]}
+                      >
+                        {sentence}
+                        {index < text.split("\n").length - 1 && "\n"}
+                      </Text>
+                    ))}
+                  </ScrollView>
+                  <TouchableOpacity
+                    style={styles.editOverlay}
+                    onPress={() => {
+                      handlePause();
+                    }}
+                  >
+                    <Text style={styles.editOverlayText}>Tap to edit</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TextInput
+                  value={text}
+                  onChangeText={setText}
+                  placeholder="Start typing..."
+                  placeholderTextColor={Colors[colorScheme ?? "light"].icon}
+                  style={[
+                    styles.textInput,
+                    { color: Colors[colorScheme ?? "light"].text },
+                  ]}
+                  multiline
+                  textAlignVertical="top"
+                  autoFocus={false}
+                />
+              )}
             </View>
           </ScrollView>
 
@@ -327,6 +399,33 @@ const styles = StyleSheet.create({
   },
   highlightedText: {
     backgroundColor: "#FEF3C7",
+  },
+  highlightContainer: {
+    flex: 1,
+    position: "relative",
+  },
+  highlightedSentence: {
+    fontSize: 16,
+    lineHeight: 24,
+    paddingVertical: 4,
+  },
+  activeSentence: {
+    backgroundColor: "#FEF3C7",
+    fontWeight: "600",
+  },
+  editOverlay: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  editOverlayText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
   },
   controls: {
     height: 56,
