@@ -1,23 +1,33 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
-import * as Speech from 'expo-speech';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useApp } from '@/contexts/AppContext';
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import * as Speech from "expo-speech";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useApp } from "@/contexts/AppContext";
 
 export default function TextScreen() {
   const colorScheme = useColorScheme();
   const { addToHistory, addShortcut, settings } = useApp();
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [highlightedText, setHighlightedText] = useState('');
+  const [highlightedText, setHighlightedText] = useState("");
 
   const handlePlay = () => {
     if (!text) return;
-    
+
     addToHistory(text);
-    
+
     Speech.speak(text, {
       rate: settings.rate,
       pitch: settings.pitch,
@@ -35,30 +45,33 @@ export default function TextScreen() {
   const handleAddShortcut = () => {
     if (text) {
       addShortcut(text);
-      Alert.alert('Shortcut Added', 'Text added to shortcuts!');
+      Alert.alert("Shortcut Added", "Text added to shortcuts!");
     }
   };
 
-  const handleKeyPress = (key: string) => {
-    if (key === 'backspace') {
-      setText(prev => prev.slice(0, -1));
-    } else if (key === 'space') {
-      setText(prev => prev + ' ');
-    } else if (key === '↵') {
-      setText(prev => prev + '\n');
-    } else {
-      setText(prev => prev + key);
-    }
+  const handleEmojiPress = (emoji: string) => {
+    setText((prev) => prev + emoji);
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+    <KeyboardAvoidingView
+      style={[
+        styles.container,
+        { backgroundColor: Colors[colorScheme ?? "light"].background },
+      ]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.headerEmoji}>💬</Text>
           <Text style={styles.headerTitle}>Text</Text>
         </View>
+      </View>
+
+      {/* Emoji Bar */}
+      <View style={styles.emojiBar}>
+        <EmojiBar onEmojiPress={handleEmojiPress} />
       </View>
 
       {/* Text Area */}
@@ -69,17 +82,23 @@ export default function TextScreen() {
           placeholder="Start typing..."
           style={[
             styles.textInput,
-            settings.highlightSpokenText && highlightedText ? styles.highlightedText : null
+            settings.highlightSpokenText && highlightedText
+              ? styles.highlightedText
+              : null,
           ]}
           multiline
           textAlignVertical="top"
+          autoFocus={false}
         />
       </View>
 
       {/* Controls */}
       <View style={styles.controls}>
         <TouchableOpacity
-          style={[styles.controlButton, (!text || isPlaying) && styles.disabledButton]}
+          style={[
+            styles.controlButton,
+            (!text || isPlaying) && styles.disabledButton,
+          ]}
           onPress={handlePlay}
           disabled={!text || isPlaying}
         >
@@ -93,121 +112,59 @@ export default function TextScreen() {
           <IconSymbol name="pause.fill" size={20} color="white" />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.controlButton, styles.addButton, !text && styles.disabledButton]}
+          style={[
+            styles.controlButton,
+            styles.addButton,
+            !text && styles.disabledButton,
+          ]}
           onPress={handleAddShortcut}
           disabled={!text}
         >
           <IconSymbol name="plus" size={20} color="white" />
         </TouchableOpacity>
       </View>
-
-      {/* Keyboard Area */}
-      <View style={styles.keyboardArea}>
-        <Keyboard onKeyPress={handleKeyPress} />
-      </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
-// Keyboard Component
-interface KeyboardProps {
-  onKeyPress: (key: string) => void;
+// Emoji Bar Component
+interface EmojiBarProps {
+  onEmojiPress: (emoji: string) => void;
 }
 
-function Keyboard({ onKeyPress }: KeyboardProps) {
-  const row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
-  const row2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-  const row3 = ['z', 'x', 'c', 'v', 'b', 'n', 'm'];
-  const emojis = ['😊', '😢', '😠', '😐', '😂', '🙏'];
+function EmojiBar({ onEmojiPress }: EmojiBarProps) {
+  const emojis = [
+    "😊",
+    "😢",
+    "😠",
+    "😐",
+    "😂",
+    "🙏",
+    "❤️",
+    "👍",
+    "👎",
+    "🎉",
+    "🔥",
+    "💯",
+  ];
 
   return (
-    <View style={styles.keyboard}>
-      {/* Emoji Row */}
-      <View style={styles.keyboardRow}>
-        {emojis.map((emoji, idx) => (
-          <TouchableOpacity
-            key={idx}
-            style={styles.emojiKey}
-            onPress={() => onKeyPress(emoji)}
-          >
-            <Text style={styles.emojiText}>{emoji}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* First Row */}
-      <View style={styles.keyboardRow}>
-        {row1.map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.key}
-            onPress={() => onKeyPress(key)}
-          >
-            <Text style={styles.keyText}>{key.toUpperCase()}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Second Row */}
-      <View style={[styles.keyboardRow, styles.secondRow]}>
-        {row2.map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.key}
-            onPress={() => onKeyPress(key)}
-          >
-            <Text style={styles.keyText}>{key.toUpperCase()}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Third Row */}
-      <View style={styles.keyboardRow}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.emojiScrollView}
+      contentContainerStyle={styles.emojiContainer}
+    >
+      {emojis.map((emoji, idx) => (
         <TouchableOpacity
-          style={styles.shiftKey}
-          onPress={() => onKeyPress('⇧')}
+          key={idx}
+          style={styles.emojiButton}
+          onPress={() => onEmojiPress(emoji)}
         >
-          <Text style={styles.keyText}>⇧</Text>
+          <Text style={styles.emojiText}>{emoji}</Text>
         </TouchableOpacity>
-        {row3.map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.key}
-            onPress={() => onKeyPress(key)}
-          >
-            <Text style={styles.keyText}>{key.toUpperCase()}</Text>
-          </TouchableOpacity>
-        ))}
-        <TouchableOpacity
-          style={styles.backspaceKey}
-          onPress={() => onKeyPress('backspace')}
-        >
-          <Text style={styles.keyText}>⌫</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Fourth Row - Space Bar */}
-      <View style={styles.keyboardRow}>
-        <TouchableOpacity
-          style={styles.numberKey}
-          onPress={() => onKeyPress('123')}
-        >
-          <Text style={styles.keyText}>123</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.spaceKey}
-          onPress={() => onKeyPress('space')}
-        >
-          <Text style={styles.keyText}>space</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.enterKey}
-          onPress={() => onKeyPress('↵')}
-        >
-          <Text style={styles.keyText}>↵</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -217,13 +174,13 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 80,
-    backgroundColor: '#3B82F6', // blue-500
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#3B82F6", // blue-500
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   headerEmoji: {
@@ -231,30 +188,60 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
+  },
+  emojiBar: {
+    height: 60,
+    backgroundColor: "#F9FAFB",
+    borderBottomWidth: 1,
+    borderBottomColor: "#D1D5DB",
+  },
+  emojiScrollView: {
+    flex: 1,
+  },
+  emojiContainer: {
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  emojiButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: "white",
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  emojiText: {
+    fontSize: 20,
   },
   textArea: {
-    flex: 2,
+    flex: 1,
     padding: 16,
   },
   textInput: {
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   highlightedText: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: "#FEF3C7",
   },
   controls: {
     height: 56,
     borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-    backgroundColor: '#F9FAFB',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderTopColor: "#D1D5DB",
+    backgroundColor: "#F9FAFB",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 12,
     paddingHorizontal: 16,
   },
@@ -262,133 +249,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#3B82F6",
+    justifyContent: "center",
+    alignItems: "center",
   },
   addButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
   },
   disabledButton: {
-    backgroundColor: '#D1D5DB',
-  },
-  keyboardArea: {
-    flex: 1,
-    backgroundColor: '#D1D5DB',
-    borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-  },
-  keyboard: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 8,
-    gap: 4,
-  },
-  keyboardRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  secondRow: {
-    paddingHorizontal: 12,
-  },
-  key: {
-    width: 32,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  emojiKey: {
-    width: 40,
-    height: 32,
-    backgroundColor: 'white',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  emojiText: {
-    fontSize: 18,
-  },
-  keyText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  shiftKey: {
-    width: 48,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  backspaceKey: {
-    width: 48,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  numberKey: {
-    width: 56,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  spaceKey: {
-    flex: 1,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  enterKey: {
-    width: 56,
-    height: 40,
-    backgroundColor: '#3B82F6',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 1,
+    backgroundColor: "#D1D5DB",
   },
 });
