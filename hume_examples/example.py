@@ -67,8 +67,53 @@ async def synthesize_one(client: AsyncHumeClient, text: str, emotion: str, ext: 
 
     return out_path
 
+
+async def synthesize_multi(client: AsyncHumeClient, segments: list[dict], ext: str = "mp3"):
+    """
+    Generate speech that changes emotion mid-text by using multiple utterances.
+    Example:
+        segments = [
+            {"text": "Hello there. ", "emotion": "neutral"},
+            {"text": "I am not happy about this!", "emotion": "angry"},
+        ]
+    """
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = OUT_DIR / f"mixed_emotions.{ext}"
+
+    utterances = []
+    for seg in segments:
+        emo = seg["emotion"]
+        preset = EMOTION_PRESETS.get(emo)
+        if preset is None:
+            raise ValueError(f"Unknown emotion: {emo}")
+        utterances.append(
+            PostedUtterance(
+                text=seg["text"],
+                voice=PostedUtteranceVoiceWithName(name=VOICE_NAME, provider="HUME_AI"),
+                description=preset["description"],
+                speed=preset["speed"],
+            )
+        )
+
+    # Stream audio as it’s generated
+    stream = client.tts.synthesize_json_streaming(
+        utterances=utterances,
+        strip_headers=True,
+        version="1",
+    )
+
+    with open(out_path, "wb") as f:
+        async for chunk in stream:
+            audio_b64 = getattr(chunk, "audio", None)
+            if audio_b64:
+                f.write(base64.b64decode(audio_b64))
+
+    return out_path
+
+
 async def main():
     global VOICE_NAME
+
     parser = argparse.ArgumentParser(description="Hume TTS emotions demo")
     parser.add_argument("--text", "-t", default="This is a demo line for the selected emotion.")
     parser.add_argument("--emotion", "-e",
@@ -76,6 +121,10 @@ async def main():
                         choices=["all"] + list(EMOTION_PRESETS.keys()))
     parser.add_argument("--voice", "-v", default=VOICE_NAME)
     parser.add_argument("--ext", default="mp3", help="Output extension (mp3 or wav)")
+    parser.add_argument(
+        "--multi", "-m", action="store_true",
+        help="Enable multi-segment mode to demonstrate mid-text emotion switching"
+    )
     args = parser.parse_args()
 
     load_dotenv()
@@ -84,14 +133,22 @@ async def main():
         raise EnvironmentError("Missing HUME_API_KEY in .env")
 
     VOICE_NAME = args.voice
-
     client = AsyncHumeClient(api_key=api_key)
 
-    if args.emotion == "all":
+    if args.multi:
+        # Example of switching emotions mid-text
+        segments = [
+            {"text": "Hello there, it's good to see you. ", "emotion": "happy"},
+            {"text": "But honestly, I'm starting to feel uncertain... ", "emotion": "doubt"},
+            {"text": "And now I'm getting really frustrated!", "emotion": "angry"},
+        ]
+        await synthesize_multi(client, segments, args.ext)
+    elif args.emotion == "all":
         for emo in EMOTION_PRESETS:
             await synthesize_one(client, args.text, emo, args.ext)
     else:
         await synthesize_one(client, args.text, args.emotion, args.ext)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
