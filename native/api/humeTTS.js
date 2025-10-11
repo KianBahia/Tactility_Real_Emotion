@@ -1,13 +1,11 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import dotenv from "dotenv";
-import fetch from "node-fetch";
-import { argv } from "process";
-
-dotenv.config();
+import { argv } from "process"; // no dotenv, no node-fetch
 
 // --- Constants ---
+const HUME_API_KEY = "biZo4AG69GuaUAzLKmdt2ybfCbE3MDwVTBC6oGYO8SYYG9GV"; // ✅ semicolon
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const VOICE_NAME_DEFAULT = "Ava Song";
@@ -112,9 +110,7 @@ async function synthesizeOne(apiKey, text, emotion, ext = "mp3", voiceName = VOI
 // --- Main ---
 async function main() {
   const args = parseArgs();
-  const apiKey = process.env.HUME_API_KEY;
-  if (!apiKey) throw new Error("Missing HUME_API_KEY in .env");
-
+  const apiKey = HUME_API_KEY;
   await synthesizeOne(apiKey, args.text, args.emotion, args.ext, args.voice);
 }
 

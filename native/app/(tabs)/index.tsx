@@ -17,6 +17,10 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
+import { Audio } from "expo-av";
+import { synthesizeOne } from "@/api/humeTTS";
+import { File, Directory } from "expo-file-system";
+
 
 export default function TextScreen() {
   const colorScheme = useColorScheme();
@@ -25,19 +29,40 @@ export default function TextScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [highlightedText, setHighlightedText] = useState("");
 
-  const handlePlay = () => {
-    if (!text) return;
+const handlePlay = async () => {
+  if (!text) return;
+  addToHistory(text);
+  setIsPlaying(true);
 
-    addToHistory(text);
+  try {
+    const base64 = await synthesizeOne(text, "happy");
 
-    Speech.speak(text, {
-      rate: settings.rate,
-      pitch: settings.pitch,
-      onStart: () => setIsPlaying(true),
-      onDone: () => setIsPlaying(false),
-      onStopped: () => setIsPlaying(false),
+    // ✅ Create a cache file using new FileSystem API
+    const dir = await Directory.cacheAsync();
+    const file = await File.createAsync(`${dir.path}/tts-${Date.now()}.mp3`);
+
+    // ✅ Write base64 data
+    await file.writeAsync(base64, { encoding: "base64" });
+
+    // ✅ Play sound
+    const { sound } = await Audio.Sound.createAsync(
+      { uri: file.uri },
+      { shouldPlay: true }
+    );
+
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if ("didJustFinish" in status && status.didJustFinish) {
+        setIsPlaying(false);
+        sound.unloadAsync();
+      }
     });
-  };
+  } catch (err: any) {
+    console.error(err);
+    Alert.alert("Hume TTS Error", err.message || "Unknown error");
+    setIsPlaying(false);
+  }
+};
+
 
   const handlePause = () => {
     Speech.stop();
