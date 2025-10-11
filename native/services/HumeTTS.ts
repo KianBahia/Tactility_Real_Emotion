@@ -136,7 +136,7 @@ class HumeTTSService {
           description: preset.description,
           voice: { 
             name: voiceName, 
-            provider: "HUME_AI" 
+           // provider: "HUME_AI" 
           },
           speed: speed,
         },
