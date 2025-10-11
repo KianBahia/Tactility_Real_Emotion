@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -8,6 +8,7 @@ import { useApp } from '@/contexts/AppContext';
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const { settings, updateSettings } = useApp();
+  const [humeApiKey, setHumeApiKey] = useState(settings.humeApiKey);
 
   const handleVoiceSettings = () => {
     Alert.alert('Voice Settings', 'Voice selection would be implemented here');
@@ -134,6 +135,30 @@ export default function SettingsScreen() {
               thumbColor={settings.videoCallEnabled ? '#FFFFFF' : '#F3F4F6'}
             />
           </View>
+
+          {/* Hume API Key Input */}
+          <View style={styles.apiKeyContainer}>
+            <Text style={styles.apiKeyLabel}>Hume API Key</Text>
+            <TextInput
+              style={styles.apiKeyInput}
+              value={humeApiKey}
+              onChangeText={setHumeApiKey}
+              placeholder="Enter your Hume API key"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={() => {
+                updateSettings({ humeApiKey });
+                Alert.alert('Saved', 'Hume API key saved successfully!');
+              }}
+            >
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -205,5 +230,42 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  apiKeyContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    gap: 12,
+  },
+  apiKeyLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  apiKeyInput: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#374151',
+  },
+  saveButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
