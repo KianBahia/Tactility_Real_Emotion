@@ -11,7 +11,6 @@ OUT_DIR = Path("out_tts")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ======================================================
-# 🎭 EMOTION PRESETS — added level 2 & 3 for selected emotions
 # ======================================================
 EMOTION_PRESETS = {
     "neutral": {
@@ -20,7 +19,6 @@ EMOTION_PRESETS = {
     },
 
     # ------------------------
-    # 😠 ANGRY (original kept as level 1)
     # ------------------------
     "angry": {
         "description": "angry, sharp, intense, clipped consonants, firm emphasis, fast pace",
@@ -36,18 +34,17 @@ EMOTION_PRESETS = {
     },
 
     # ------------------------
-    # 😀 HAPPY (original kept as level 1)
     # ------------------------
     "happy": {
         "description": "genuinely happy, bright and energetic, friendly tone with natural laughter in the voice, "
                        "smiling while speaking, medium-fast rhythm, expressive intonation, and clear articulation. "
                        "Imagine someone excitedly sharing good news with a close friend.",
-        "speed": 1.1,
+        "speed": 1.07,
     },
     "happy_2": {
         "description": "delighted, lively tone with stronger brightness and dynamic rhythm; smiling through every word, "
                        "playful and expressive with noticeable warmth and energy that fills the voice.",
-        "speed": 1.15,
+        "speed": 1.12,
     },
     "happy_3": {
         "description": "ecstatic, overjoyed, wide-pitched laughter in the voice, extremely bright tone and quick rhythm, "
@@ -56,15 +53,14 @@ EMOTION_PRESETS = {
     },
 
     # ------------------------
-    # 🚀 ENTHUSIASTIC_FORMAL (original kept as level 1)
     # ------------------------
     "enthusiastic_formal": {
         "description": "enthusiastic but formal, confident projection, clear diction, positive emphasis",
-        "speed": 1.05,
+        "speed": 1.02,
     },
     "enthusiastic_formal_2": {
         "description": "very enthusiastic, expressive intonation and confident rhythm; polished yet dynamic delivery with vibrant projection and upbeat emphasis.",
-        "speed": 1.10,
+        "speed": 1.08,
     },
     "enthusiastic_formal_3": {
         "description": "extremely enthusiastic, passionate yet articulate tone, elevated pitch range, strong rhythm and conviction — sounds inspiring and contagious.",
@@ -118,32 +114,86 @@ EMOTION_PRESETS = {
 # 🗣️ SAMPLE LINES — same per emotion (not per level)
 # ======================================================
 EMOTION_LINES = {
-    # angry (same for all levels)
-    "angry": "I can't believe this happened — this is completely unacceptable and it infuriates me. "
-             "We need to address this immediately, hold people accountable, and make sure it never repeats; "
-             "this kind of behavior is intolerable and I'm demanding action.",
-    "angry_2": "I can't believe this happened — this is completely unacceptable and it infuriates me. "
-               "We need to address this immediately, hold people accountable, and make sure it never repeats; "
-               "this kind of behavior is intolerable and I'm demanding action.",
-    "angry_3": "I can't believe this happened — this is completely unacceptable and it infuriates me. "
-               "We need to address this immediately, hold people accountable, and make sure it never repeats; "
-               "this kind of behavior is intolerable and I'm demanding action.",
-
-    # happy (same for all levels)
-    "happy": "That's absolutely wonderful news — I'm genuinely thrilled and full of joy for you. "
-             "This brings a warm, buoyant energy and I feel like celebrating; your success lights up the room.",
-    "happy_2": "That's absolutely wonderful news — I'm genuinely thrilled and full of joy for you. "
-               "This brings a warm, buoyant energy and I feel like celebrating; your success lights up the room.",
-    "happy_3": "That's absolutely wonderful news — I'm genuinely thrilled and full of joy for you. "
-               "This brings a warm, buoyant energy and I feel like celebrating; your success lights up the room.",
-
-    # enthusiastic_formal (same for all levels)
-    "enthusiastic_formal": "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
-                           "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed.",
-    "enthusiastic_formal_2": "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
-                             "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed.",
-    "enthusiastic_formal_3": "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
-                             "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed.",
+    "neutral": (
+        "Fine, do whatever you want — honestly, it makes no difference to me either way. "
+        "I'll stay out of it; you can make the call and I'll accept the result without fuss."
+    ),
+    "angry": (
+        "I can't believe this happened — this is completely unacceptable and it infuriates me. "
+        "We need to address this immediately, hold people accountable, and make sure it never repeats; "
+        "this kind of behavior is intolerable and I'm demanding action."
+    ),
+    "angry_2": (
+        "I can't believe this happened — this is completely unacceptable and it infuriates me. "
+        "We need to address this immediately, hold people accountable, and make sure it never repeats; "
+        "this kind of behavior is intolerable and I'm demanding action."
+    ),
+    "angry_3": (
+        "I can't believe this happened — this is completely unacceptable and it infuriates me. "
+        "We need to address this immediately, hold people accountable, and make sure it never repeats; "
+        "this kind of behavior is intolerable and I'm demanding action."
+    ),
+    "sad": (
+        "I'm really sorry about this; I've been feeling drained and overwhelmed by what occurred. "
+        "Everything seems muted and heavy, and it's been difficult to find the energy to respond — "
+        "I need a little time to process and recover."
+    ),
+    "doubt": (
+        "Um... I'm not entirely sure this is correct, and I'm feeling hesitant about moving forward. "
+        "Perhaps we should pause, check the details more carefully, and consider alternatives — "
+        "I don't want us to commit to something we might regret."
+    ),
+    "happy": (
+        "That's absolutely wonderful news — I'm genuinely thrilled and full of joy for you. "
+        "This brings a warm, buoyant energy and I feel like celebrating; your success lights up the room."
+    ),
+    "happy_2": (
+        "That's absolutely wonderful news — I'm genuinely thrilled and full of joy for you. "
+        "This brings a warm, buoyant energy and I feel like celebrating; your success lights up the room."
+    ),
+    "happy_3": (
+        "That's absolutely wonderful news — I'm genuinely thrilled and full of joy for you. "
+        "This brings a warm, buoyant energy and I feel like celebrating; your success lights up the room."
+    ),
+    "enthusiastic_formal": (
+        "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
+        "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed."
+    ),
+    "enthusiastic_formal_2": (
+        "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
+        "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed."
+    ),
+    "enthusiastic_formal_3": (
+        "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
+        "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed."
+    ),
+    "funny_sarcastic": (
+        "How can you be so good Ahmed, I do not believe it"
+    ),
+    "anxious": (
+        "I'm feeling a bit on edge and worried about how this will turn out; my thoughts keep racing. "
+        "What if it fails? What if I missed something important? I keep replaying scenarios and hoping for the best."
+    ),
+    "disgusted": (
+        "Ew, that is really off-putting — it makes my skin crawl and I want to step away. "
+        "The sensation is visceral: I recoil, pull back, and feel a strong desire to avoid it entirely."
+    ),
+    "shy": (
+        "Um... hi — I, uh, just wanted to say hello. I'm a bit nervous and speaking softly because I don't want to impose. "
+        "Please forgive me if I stumble; I'm trying to be polite and quiet while I gather my courage."
+    ),
+    "dont_care": (
+        "Fine, do whatever you want — honestly, it makes no difference to me either way. "
+        "I'll stay out of it; you can make the call and I'll accept the result without fuss."
+    ),
+    "admire": (
+        "Wow — that is truly impressive; I admire the skill and dedication that went into this. "
+        "Your work demonstrates care, talent, and thoughtful execution, and I sincerely respect what you've achieved."
+    ),
+    "depressed": (
+        "Lately I can't seem to find the energy to do much; everything feels heavy and colorless. "
+        "Small tasks that used to be manageable now feel overwhelming, and I'm struggling to motivate myself."
+    ),
 }
 
 # ======================================================
@@ -190,7 +240,7 @@ async def synthesize_one(client: AsyncHumeClient, text: str, emotion: str, ext: 
 
 
 # ======================================================
-# 🚀 MAIN EXECUTION
+# MAIN EXECUTION
 # ======================================================
 async def main():
     global VOICE_NAME
