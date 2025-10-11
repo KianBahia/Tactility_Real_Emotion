@@ -6,7 +6,7 @@ from hume import AsyncHumeClient
 from hume.tts import PostedUtterance, PostedUtteranceVoiceWithName
 
 VOICE_NAME = "Ava Song"  # this is a standard voice, for the future we can updating it using shuhan voice 
-OUT_DIR = Path("out_tts")
+OUT_DIR = Path("prueba")
 
 # here you can find various prompts to test how the emotional token works.
 EMOTION_PRESETS = {
@@ -27,9 +27,12 @@ EMOTION_PRESETS = {
         "speed": 0.95,
     },
     "happy": {
-        "description": "happy, bright, upbeat, smiling tone, lively rhythm, warm and friendly",
+        "description": "genuinely happy, bright and energetic, friendly tone with natural laughter in the voice, "
+        "smiling while speaking, medium-fast rhythm, expressive intonation, and clear articulation. "
+        "Imagine someone excitedly sharing good news with a close friend.",
         "speed": 1.1,
     },
+ 
 }
 
 async def synthesize_one(client: AsyncHumeClient, text: str, emotion: str, ext: str = "mp3"):
