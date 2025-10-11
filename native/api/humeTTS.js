@@ -1,13 +1,8 @@
-// humeTTS.js
-// Equivalent of your Python script in Node.js
-// Uses the official Hume API (streaming JSON chunks) exactly as the Python SDK does.
-
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import base64 from "base64-js";
 import { argv } from "process";
 
 dotenv.config();
@@ -15,7 +10,7 @@ dotenv.config();
 // --- Constants ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const VOICE_NAME_DEFAULT = "Ava Song"; // can later be changed dynamically
+const VOICE_NAME_DEFAULT = "Ava Song";
 const OUT_DIR = path.join(__dirname, "out_tts");
 
 const EMOTION_PRESETS = {
@@ -24,23 +19,19 @@ const EMOTION_PRESETS = {
     speed: 1.0,
   },
   angry: {
-    description:
-      "angry, sharp, intense, clipped consonants, firm emphasis, fast pace",
+    description: "angry, sharp, intense, clipped consonants, firm emphasis, fast pace",
     speed: 1.15,
   },
   sad: {
-    description:
-      "sad, soft, low energy, slow pace, gentle downward intonation, subdued",
+    description: "sad, soft, low energy, slow pace, gentle downward intonation, subdued",
     speed: 0.85,
   },
   doubt: {
-    description:
-      "uncertain, hesitant, thoughtful, light pauses, rising intonation at phrase ends",
+    description: "uncertain, hesitant, thoughtful, light pauses, rising intonation at phrase ends",
     speed: 0.95,
   },
   happy: {
-    description:
-      "happy, bright, upbeat, smiling tone, lively rhythm, warm and friendly",
+    description: "happy, bright, upbeat, smiling tone, lively rhythm, warm and friendly",
     speed: 1.1,
   },
 };
@@ -62,40 +53,41 @@ function parseArgs() {
   }
   return {
     text: args.text || "This is a demo line for the selected emotion.",
-    emotion: args.emotion || "all",
+    emotion: args.emotion || "happy",
     voice: args.voice || VOICE_NAME_DEFAULT,
     ext: args.ext || "mp3",
-    multi: args.multi || false,
   };
 }
 
-// --- Core function (streaming) ---
-async function synthesizeOne(clientKey, text, emotion, ext = "mp3", voiceName = VOICE_NAME_DEFAULT) {
+// --- Core function (single emotion) ---
+async function synthesizeOne(apiKey, text, emotion, ext = "mp3", voiceName = VOICE_NAME_DEFAULT) {
   const preset = EMOTION_PRESETS[emotion];
   if (!preset) throw new Error(`Unknown emotion: ${emotion}`);
 
   ensureOutDir();
   const outPath = path.join(OUT_DIR, `${emotion}.${ext}`);
-  console.log(`Generating [${emotion}] voice → ${outPath}`);
+  console.log(`🎙️ Generating [${emotion}] → ${outPath}`);
 
-  // Streaming version (matches Python’s synthesize_json_streaming)
-const response = await fetch("https://api.hume.ai/v0/tts", {
+  const payload = {
+    utterances: [
+      {
+        text,
+        description: preset.description,
+        voice: { name: voiceName, provider: "HUME_AI" },
+        speed: preset.speed,
+      },
+    ],
+    format: { type: ext },
+    num_generations: 1,
+  };
+
+  const response = await fetch("https://api.hume.ai/v0/tts", {
     method: "POST",
     headers: {
-      "X-Hume-Api-Key": clientKey,
+      "X-Hume-Api-Key": apiKey,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      utterances: [
-        {
-          text,
-          voice: { name: voiceName, provider: "HUME_AI" },
-          description: preset.description,
-          speed: preset.speed,
-        },
-      ],
-      strip_headers: true,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -103,77 +95,17 @@ const response = await fetch("https://api.hume.ai/v0/tts", {
     throw new Error(`Request failed: ${response.status} - ${msg}`);
   }
 
-  const file = fs.createWriteStream(outPath);
-  let written = 0;
+  const data = await response.json();
+  const audioBase64 = data?.generations?.[0]?.audio;
 
-  // Stream JSON lines (SSE-like)
-  for await (const chunk of response.body) {
-    const textChunk = chunk.toString();
-    try {
-      const jsonChunk = JSON.parse(textChunk.trim());
-      if (jsonChunk.audio) {
-        const audioData = Buffer.from(jsonChunk.audio, "base64");
-        file.write(audioData);
-        written += audioData.length;
-      }
-    } catch (_) {
-      // Some lines may not be JSON; ignore them
-    }
+  if (!audioBase64) {
+    console.error("❌ No audio data returned from API");
+    return;
   }
 
-  file.end();
-  console.log(`✅ Saved ${written} bytes to ${outPath}`);
-  return outPath;
-}
-
-// --- Multi-emotion ---
-async function synthesizeMulti(clientKey, segments, ext = "mp3", voiceName = VOICE_NAME_DEFAULT) {
-  ensureOutDir();
-  const outPath = path.join(OUT_DIR, `mixed_emotions.${ext}`);
-
-  const utterances = segments.map((seg) => {
-    const emo = seg.emotion;
-    const preset = EMOTION_PRESETS[emo];
-    if (!preset) throw new Error(`Unknown emotion: ${emo}`);
-    return {
-      text: seg.text,
-      voice: { name: voiceName, provider: "HUME_AI" },
-      description: preset.description,
-      speed: preset.speed,
-    };
-  });
-
-  console.log(`Generating mixed emotions → ${outPath}`);
-const response = await fetch("https://api.hume.ai/v0/tts", {
-    method: "POST",
-    headers: {
-      "X-Hume-Api-Key": clientKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      utterances,
-      strip_headers: true,
-    }),
-  });
-
-  if (!response.ok) {
-    const msg = await response.text();
-    throw new Error(`Request failed: ${response.status} - ${msg}`);
-  }
-
-  const file = fs.createWriteStream(outPath);
-  for await (const chunk of response.body) {
-    const textChunk = chunk.toString();
-    try {
-      const jsonChunk = JSON.parse(textChunk.trim());
-      if (jsonChunk.audio) {
-        file.write(Buffer.from(jsonChunk.audio, "base64"));
-      }
-    } catch (_) {}
-  }
-
-  file.end();
-  console.log(`✅ Mixed emotions audio saved → ${outPath}`);
+  const buffer = Buffer.from(audioBase64, "base64");
+  fs.writeFileSync(outPath, buffer);
+  console.log(`✅ Saved ${buffer.length} bytes to ${outPath}`);
   return outPath;
 }
 
@@ -181,25 +113,9 @@ const response = await fetch("https://api.hume.ai/v0/tts", {
 async function main() {
   const args = parseArgs();
   const apiKey = process.env.HUME_API_KEY;
-  if (!apiKey) {
-    console.error("❌ Error: Missing HUME_API_KEY in .env");
-    process.exit(1);
-  }
+  if (!apiKey) throw new Error("Missing HUME_API_KEY in .env");
 
-  if (args.multi) {
-    const segments = [
-      { text: "Hello there, it's good to see you. ", emotion: "happy" },
-      { text: "But honestly, I'm starting to feel uncertain... ", emotion: "doubt" },
-      { text: "And now I'm getting really frustrated!", emotion: "angry" },
-    ];
-    await synthesizeMulti(apiKey, segments, args.ext, args.voice);
-  } else if (args.emotion === "all") {
-    for (const emo of Object.keys(EMOTION_PRESETS)) {
-      await synthesizeOne(apiKey, args.text, emo, args.ext, args.voice);
-    }
-  } else {
-    await synthesizeOne(apiKey, args.text, args.emotion, args.ext, args.voice);
-  }
+  await synthesizeOne(apiKey, args.text, args.emotion, args.ext, args.voice);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -208,4 +124,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   });
 }
-
