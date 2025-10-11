@@ -33,6 +33,7 @@ export default function ShortcutsScreen() {
         rate: settings.rate,
         pitch: settings.pitch,
         voice: settings.voice?.name || 'Ava Song',
+        isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
       });
       setPlayingIndex(index);
       

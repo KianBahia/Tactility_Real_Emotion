@@ -6,6 +6,7 @@ export interface HumeTTSOptions {
   pitch?: number;
   voice?: string;
   emotion?: 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
+  isCustomVoice?: boolean;
 }
 
 export interface HumeTTSResponse {
@@ -101,6 +102,7 @@ class HumeTTSService {
   private async generateAudio(text: string, options: HumeTTSOptions): Promise<string> {
     const emotion = options.emotion || 'neutral';
     const voiceName = options.voice || 'Ava Song';
+    const isCustomVoice = options.isCustomVoice || false;
     
     // Emotion presets for more natural speech
     const emotionPresets = {
@@ -129,15 +131,18 @@ class HumeTTSService {
     const preset = emotionPresets[emotion];
     const speed = (options.rate || 1.0) * preset.speed;
 
+    // Build voice object conditionally
+    const voiceObject: any = { name: voiceName };
+    if (!isCustomVoice) {
+      voiceObject.provider = "HUME_AI";
+    }
+
     const payload = {
       utterances: [
         {
           text,
           description: preset.description,
-          voice: { 
-            name: voiceName, 
-           // provider: "HUME_AI" 
-          },
+          voice: voiceObject,
           speed: speed,
         },
       ],

@@ -48,9 +48,10 @@ export default function TextScreen() {
         // If highlighting is off or no sentences, just speak the whole text
         setIsPlaying(true);
         await humeTTS.speak(text, {
-          voice: settings.selectedVoiceId || undefined,
+          voice: settings.voice?.name || 'Ava Song',
           rate: settings.rate,
           pitch: settings.pitch,
+          isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
         });
         setIsPlaying(false);
         setCurrentSentenceIndex(-1);
@@ -66,9 +67,10 @@ export default function TextScreen() {
 
         setCurrentSentenceIndex(i);
         await humeTTS.speak(sentences[i], {
-          voice: settings.selectedVoiceId || undefined,
+          voice: settings.voice?.name || 'Ava Song',
           rate: settings.rate,
           pitch: settings.pitch,
+          isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
         });
       }
 
