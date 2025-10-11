@@ -99,17 +99,18 @@ export default function TextScreen() {
     setTimeout(() => setSelection({ start: pos, end: pos }), 0);
   };
 
-  const handlePlay = async () => {
-    if (!text) return;
+  // ---- speaking logic extracted so we can reuse it for auto-play on newline
+  const speakText = async (textToSpeak: string) => {
+    if (!textToSpeak) return;
     if (!isHumeInitialized) {
       Alert.alert('API Key Required', 'Please set your Hume API key in settings to use text-to-speech.');
       return;
     }
 
-    addToHistory(text);
+    addToHistory(textToSpeak);
     setIsPlaying(true);
 
-    const segments = parseSegments(text);
+    const segments = parseSegments(textToSpeak);
     for (const seg of segments) {
       const preset = MOTION_PRESETS[seg.emotion] || MOTION_PRESETS['neutral'];
       try {
@@ -136,6 +137,10 @@ export default function TextScreen() {
     }
 
     setIsPlaying(false);
+  };
+
+  const handlePlay = async () => {
+    await speakText(text);
   };
 
   const handlePause = async () => {
@@ -185,11 +190,31 @@ export default function TextScreen() {
             <EmojiBar onEmojiPress={handleEmojiPress} />
           </View>
 
-          <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.textArea}>
               <TextInput
                 value={text}
-                onChangeText={setText}
+                onChangeText={async (value) => {
+                  // always update UI first
+                  setText(value);
+
+                  // auto-play when a trailing newline is typed, avoid re-entry while speaking or if not initialized
+                  if (/\n$/.test(value) && !isPlaying && isHumeInitialized) {
+                    const cleaned = value.replace(/\n+$/g, '');
+                    setText(cleaned);
+                    // tidy caret position after removing newlines
+                    setTimeout(() => {
+                      const pos = cleaned.length;
+                      setSelection({ start: pos, end: pos });
+                    }, 0);
+                    await speakText(cleaned);
+                  }
+                }}
                 onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
                 placeholder="Start typing..."
                 style={[styles.textInput]}
@@ -203,18 +228,34 @@ export default function TextScreen() {
           <View style={styles.controls}>
             <View style={styles.controlsLeft} />
             <View style={styles.controlsCenter}>
-              <TouchableOpacity style={[styles.controlButton, (!text || isPlaying) && styles.disabledButton]} onPress={handlePlay} disabled={!text || isPlaying}>
+              <TouchableOpacity
+                style={[styles.controlButton, (!text || isPlaying) && styles.disabledButton]}
+                onPress={handlePlay}
+                disabled={!text || isPlaying}
+              >
                 <IconSymbol name="play.fill" size={20} color="white" />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.controlButton, !isPlaying && styles.disabledButton]} onPress={handlePause} disabled={!isPlaying}>
+              <TouchableOpacity
+                style={[styles.controlButton, !isPlaying && styles.disabledButton]}
+                onPress={handlePause}
+                disabled={!isPlaying}
+              >
                 <IconSymbol name="pause.fill" size={20} color="white" />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.controlButton, styles.addButton, !text && styles.disabledButton]} onPress={handleAddShortcut} disabled={!text}>
+              <TouchableOpacity
+                style={[styles.controlButton, styles.addButton, !text && styles.disabledButton]}
+                onPress={handleAddShortcut}
+                disabled={!text}
+              >
                 <IconSymbol name="plus" size={20} color="white" />
               </TouchableOpacity>
             </View>
             <View style={styles.controlsRight}>
-              <TouchableOpacity style={[styles.clearButton, !text && styles.disabledButton]} onPress={handleClearText} disabled={!text}>
+              <TouchableOpacity
+                style={[styles.clearButton, !text && styles.disabledButton]}
+                onPress={handleClearText}
+                disabled={!text}
+              >
                 <Text style={styles.clearButtonText}>Clear</Text>
               </TouchableOpacity>
             </View>
@@ -231,14 +272,19 @@ interface EmojiBarProps {
 
 function EmojiBar({ onEmojiPress }: EmojiBarProps) {
   const list: Array<{ key: string; emoji: string }> = [
-    { key: 'neutral', emoji: '�' },
-    { key: 'happy', emoji: '�' },
-    { key: 'sad', emoji: '�' },
-    { key: 'angry', emoji: '�' },
+    { key: 'neutral', emoji: '😐' },
+    { key: 'happy', emoji: '😊' },
+    { key: 'sad', emoji: '😢' },
+    { key: 'angry', emoji: '😠' },
     { key: 'doubt', emoji: '🤔' },
   ];
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.emojiScrollView} contentContainerStyle={styles.emojiContainer}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.emojiScrollView}
+      contentContainerStyle={styles.emojiContainer}
+    >
       {list.map((it) => (
         <TouchableOpacity key={it.key} style={styles.emojiButton} onPress={() => onEmojiPress(it.key)}>
           <Text style={styles.emojiText}>{it.emoji}</Text>
@@ -257,13 +303,29 @@ const styles = StyleSheet.create({
   emojiBar: { height: 60, backgroundColor: '#F9FAFB', borderBottomWidth: 1, borderBottomColor: '#D1D5DB' },
   emojiScrollView: { flex: 1 },
   emojiContainer: { alignItems: 'center', paddingHorizontal: 16 },
-  emojiButton: { width: 44, height: 44, backgroundColor: 'white', borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginHorizontal: 4 },
+  emojiButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: 'white',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
   emojiText: { fontSize: 20 },
   scrollContainer: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   textArea: { flex: 1, padding: 16, minHeight: 200 },
   textInput: { flex: 1, fontSize: 16, lineHeight: 24, textAlignVertical: 'top' },
-  controls: { height: 56, borderTopWidth: 1, borderTopColor: '#D1D5DB', backgroundColor: '#F9FAFB', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
+  controls: {
+    height: 56,
+    borderTopWidth: 1,
+    borderTopColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
   controlsLeft: { flex: 1 },
   controlsCenter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 },
   controlsRight: { flex: 1, alignItems: 'flex-end' },
