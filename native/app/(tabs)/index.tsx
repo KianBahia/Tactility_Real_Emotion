@@ -75,15 +75,18 @@ export default function TextScreen() {
       <TouchableWithoutFeedback onPress={dismissKeyboard}>
         <View style={styles.container}>
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <Text style={styles.headerEmoji}>💬</Text>
-              <Text style={styles.headerTitle}>Text</Text>
-            </View>
-          </View>
+          <View style={styles.header} />
 
           {/* Emoji Bar */}
-          <View style={styles.emojiBar}>
+          <View
+            style={[
+              styles.emojiBar,
+              {
+                backgroundColor: Colors[colorScheme ?? "light"].background,
+                borderBottomColor: Colors[colorScheme ?? "light"].icon,
+              },
+            ]}
+          >
             <EmojiBar onEmojiPress={handleEmojiPress} />
           </View>
 
@@ -100,8 +103,10 @@ export default function TextScreen() {
                 value={text}
                 onChangeText={setText}
                 placeholder="Start typing..."
+                placeholderTextColor={Colors[colorScheme ?? "light"].icon}
                 style={[
                   styles.textInput,
+                  { color: Colors[colorScheme ?? "light"].text },
                   settings.highlightSpokenText && highlightedText
                     ? styles.highlightedText
                     : null,
@@ -114,7 +119,15 @@ export default function TextScreen() {
           </ScrollView>
 
           {/* Controls */}
-          <View style={styles.controls}>
+          <View
+            style={[
+              styles.controls,
+              {
+                backgroundColor: Colors[colorScheme ?? "light"].background,
+                borderTopColor: Colors[colorScheme ?? "light"].icon,
+              },
+            ]}
+          >
             {/* Left side - empty for keyboard dismissal */}
             <View style={styles.controlsLeft} />
 
@@ -176,19 +189,19 @@ interface EmojiBarProps {
 }
 
 function EmojiBar({ onEmojiPress }: EmojiBarProps) {
+  const colorScheme = useColorScheme();
   const emojis = [
-    "😊",
-    "😢",
-    "😠",
-    "😐",
-    "😂",
-    "🙏",
-    "❤️",
-    "👍",
-    "👎",
-    "🎉",
-    "🔥",
-    "💯",
+    "🤩", // enthusiasm for a job (formal)
+    "🤣", // funny/sarcastic
+    "🥳", // happy
+    "😡", // angry
+    "😢", // sadly/depression
+    "🙂", // neutral
+    "🫠", // anxious
+    "🤢", // awful
+    "🫣", // shy
+    "😑", // don't care
+    "🥺", // admire
   ];
 
   return (
@@ -197,12 +210,25 @@ function EmojiBar({ onEmojiPress }: EmojiBarProps) {
       showsHorizontalScrollIndicator={false}
       style={styles.emojiScrollView}
       contentContainerStyle={styles.emojiContainer}
+      keyboardShouldPersistTaps="always"
     >
       {emojis.map((emoji, idx) => (
         <TouchableOpacity
           key={idx}
-          style={styles.emojiButton}
-          onPress={() => onEmojiPress(emoji)}
+          style={[
+            styles.emojiButton,
+            {
+              backgroundColor:
+                Colors[colorScheme ?? "light"].background === "#fff"
+                  ? "white"
+                  : "#2D2D2D",
+            },
+          ]}
+          onPress={(e) => {
+            e.stopPropagation();
+            onEmojiPress(emoji);
+          }}
+          activeOpacity={0.7}
         >
           <Text style={styles.emojiText}>{emoji}</Text>
         </TouchableOpacity>
@@ -218,27 +244,10 @@ const styles = StyleSheet.create({
   header: {
     height: 80,
     backgroundColor: "#3B82F6", // blue-500
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerEmoji: {
-    fontSize: 32,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
   },
   emojiBar: {
     height: 60,
-    backgroundColor: "#F9FAFB",
     borderBottomWidth: 1,
-    borderBottomColor: "#D1D5DB",
   },
   emojiScrollView: {
     flex: 1,
@@ -250,7 +259,6 @@ const styles = StyleSheet.create({
   emojiButton: {
     width: 44,
     height: 44,
-    backgroundColor: "white",
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
@@ -287,8 +295,6 @@ const styles = StyleSheet.create({
   controls: {
     height: 56,
     borderTopWidth: 1,
-    borderTopColor: "#D1D5DB",
-    backgroundColor: "#F9FAFB",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
@@ -321,16 +327,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#D1D5DB",
   },
   clearButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
     backgroundColor: "#EF4444",
     justifyContent: "center",
     alignItems: "center",
+    minWidth: 80,
+    minHeight: 40,
   },
   clearButtonText: {
     color: "white",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
   },
 });
