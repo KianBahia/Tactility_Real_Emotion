@@ -9,6 +9,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import * as Speech from "expo-speech";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -53,6 +55,15 @@ export default function TextScreen() {
     setText((prev) => prev + emoji);
   };
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
+  const handleClearText = () => {
+    setText("");
+    dismissKeyboard();
+  };
+
   return (
     <KeyboardAvoidingView
       style={[
@@ -61,68 +72,100 @@ export default function TextScreen() {
       ]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerEmoji}>💬</Text>
-          <Text style={styles.headerTitle}>Text</Text>
+      <TouchableWithoutFeedback onPress={dismissKeyboard}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerEmoji}>💬</Text>
+              <Text style={styles.headerTitle}>Text</Text>
+            </View>
+          </View>
+
+          {/* Emoji Bar */}
+          <View style={styles.emojiBar}>
+            <EmojiBar onEmojiPress={handleEmojiPress} />
+          </View>
+
+          {/* Scrollable Content */}
+          <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Text Area */}
+            <View style={styles.textArea}>
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder="Start typing..."
+                style={[
+                  styles.textInput,
+                  settings.highlightSpokenText && highlightedText
+                    ? styles.highlightedText
+                    : null,
+                ]}
+                multiline
+                textAlignVertical="top"
+                autoFocus={false}
+              />
+            </View>
+          </ScrollView>
+
+          {/* Controls */}
+          <View style={styles.controls}>
+            {/* Left side - empty for keyboard dismissal */}
+            <View style={styles.controlsLeft} />
+
+            {/* Center - main control buttons */}
+            <View style={styles.controlsCenter}>
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  (!text || isPlaying) && styles.disabledButton,
+                ]}
+                onPress={handlePlay}
+                disabled={!text || isPlaying}
+              >
+                <IconSymbol name="play.fill" size={20} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  !isPlaying && styles.disabledButton,
+                ]}
+                onPress={handlePause}
+                disabled={!isPlaying}
+              >
+                <IconSymbol name="pause.fill" size={20} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.controlButton,
+                  styles.addButton,
+                  !text && styles.disabledButton,
+                ]}
+                onPress={handleAddShortcut}
+                disabled={!text}
+              >
+                <IconSymbol name="plus" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Right side - Clear button */}
+            <View style={styles.controlsRight}>
+              <TouchableOpacity
+                style={[styles.clearButton, !text && styles.disabledButton]}
+                onPress={handleClearText}
+                disabled={!text}
+              >
+                <Text style={styles.clearButtonText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
-
-      {/* Emoji Bar */}
-      <View style={styles.emojiBar}>
-        <EmojiBar onEmojiPress={handleEmojiPress} />
-      </View>
-
-      {/* Text Area */}
-      <View style={styles.textArea}>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="Start typing..."
-          style={[
-            styles.textInput,
-            settings.highlightSpokenText && highlightedText
-              ? styles.highlightedText
-              : null,
-          ]}
-          multiline
-          textAlignVertical="top"
-          autoFocus={false}
-        />
-      </View>
-
-      {/* Controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            (!text || isPlaying) && styles.disabledButton,
-          ]}
-          onPress={handlePlay}
-          disabled={!text || isPlaying}
-        >
-          <IconSymbol name="play.fill" size={20} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.controlButton, !isPlaying && styles.disabledButton]}
-          onPress={handlePause}
-          disabled={!isPlaying}
-        >
-          <IconSymbol name="pause.fill" size={20} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.controlButton,
-            styles.addButton,
-            !text && styles.disabledButton,
-          ]}
-          onPress={handleAddShortcut}
-          disabled={!text}
-        >
-          <IconSymbol name="plus" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
@@ -221,9 +264,16 @@ const styles = StyleSheet.create({
   emojiText: {
     fontSize: 20,
   },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   textArea: {
     flex: 1,
     padding: 16,
+    minHeight: 200,
   },
   textInput: {
     flex: 1,
@@ -240,10 +290,21 @@ const styles = StyleSheet.create({
     borderTopColor: "#D1D5DB",
     backgroundColor: "#F9FAFB",
     flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  controlsLeft: {
+    flex: 1,
+  },
+  controlsCenter: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 16,
+  },
+  controlsRight: {
+    flex: 1,
+    alignItems: "flex-end",
   },
   controlButton: {
     width: 48,
@@ -258,5 +319,18 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: "#D1D5DB",
+  },
+  clearButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  clearButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
