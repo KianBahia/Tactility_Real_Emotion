@@ -1,4 +1,5 @@
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { Voice } from '@/contexts/AppContext';
 
 export interface HumeTTSOptions {
@@ -6,6 +7,8 @@ export interface HumeTTSOptions {
   pitch?: number;
   voice?: string;
   emotion?: 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
+  description?: string;
+  trailing_silence?: number;
 }
 
 export interface HumeTTSResponse {
@@ -99,8 +102,10 @@ class HumeTTSService {
   }
 
   private async generateAudio(text: string, options: HumeTTSOptions): Promise<string> {
-    const emotion = options.emotion || 'neutral';
-    const voiceName = options.voice || 'Ava Song';
+  const emotion = options.emotion || 'neutral';
+  // Don't force a custom default voice here. If a voice is provided, try it;
+  // otherwise omit the voice field so the service uses a sensible default.
+  const voiceName = options.voice || undefined;
     
     // Emotion presets for more natural speech
     const emotionPresets = {
@@ -129,23 +134,27 @@ class HumeTTSService {
     const preset = emotionPresets[emotion];
     const speed = (options.rate || 1.0) * preset.speed;
 
+    // allow caller to override description/trailing_silence
+    const description = options.description || preset.description;
+    const trailingSilence = typeof options.trailing_silence === 'number' ? options.trailing_silence : undefined;
+
+    const utteranceObj: any = {
+      text,
+      description: description,
+      speed: speed,
+    };
+    if (voiceName) utteranceObj.voice = { name: voiceName };
+    if (typeof trailingSilence === 'number') utteranceObj.trailing_silence = trailingSilence;
+
     const payload = {
-      utterances: [
-        {
-          text,
-          description: preset.description,
-          voice: { 
-            name: voiceName, 
-           // provider: "HUME_AI" 
-          },
-          speed: speed,
-        },
-      ],
+      utterances: [utteranceObj],
       format: { type: "mp3" },
       num_generations: 1,
     };
 
-    const response = await fetch('https://api.hume.ai/v0/tts', {
+    // Try request; if a custom voice is not found we will retry without the
+    // voice field so the API can pick a default voice for the account.
+    let response = await fetch('https://api.hume.ai/v0/tts', {
       method: 'POST',
       headers: {
         'X-Hume-Api-Key': this.apiKey,
@@ -155,8 +164,38 @@ class HumeTTSService {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Hume TTS API error: ${response.status} - ${errorText}`);
+      // attempt one retry without the voice field when the error looks like
+      // a missing/forbidden custom voice resource
+      try {
+        const errorText = await response.text();
+        const lower = errorText.toLowerCase();
+        if (response.status === 404 || lower.includes('does not exist') || lower.includes('resource not found')) {
+          // remove voice and retry
+          const payload2: any = { ...payload };
+          if (payload2.utterances && payload2.utterances[0]) {
+            delete payload2.utterances[0].voice;
+          }
+          const resp2 = await fetch('https://api.hume.ai/v0/tts', {
+            method: 'POST',
+            headers: {
+              'X-Hume-Api-Key': this.apiKey,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload2),
+          });
+          if (resp2.ok) {
+            response = resp2;
+          } else {
+            const err2 = await resp2.text();
+            throw new Error(`Hume TTS API error after retry: ${resp2.status} - ${err2}`);
+          }
+        } else {
+          throw new Error(`Hume TTS API error: ${response.status} - ${errorText}`);
+        }
+      } catch (e) {
+        // rethrow so outer catch handles fallback
+        throw e;
+      }
     }
 
     const data: HumeTTSResponse = await response.json();
