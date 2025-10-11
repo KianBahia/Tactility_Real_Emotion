@@ -19,8 +19,6 @@ interface AppContextType {
   history: string[];
   setHistory: (history: string[]) => void;
   addToHistory: (text: string) => void;
-  deleteHistory: (index: number) => void;
-  clearAllHistory: () => void;
   settings: SpeechSettings;
   updateSettings: (newSettings: Partial<SpeechSettings>) => void;
 }
@@ -69,14 +67,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const deleteHistory = (index: number) => {
-    setHistory(history.filter((_, i) => i !== index));
-  };
-
-  const clearAllHistory = () => {
-    setHistory([]);
-  };
-
   const updateSettings = (newSettings: Partial<SpeechSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
@@ -91,8 +81,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         history,
         setHistory,
         addToHistory,
-        deleteHistory,
-        clearAllHistory,
         settings,
         updateSettings,
       }}
