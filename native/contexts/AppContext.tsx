@@ -9,6 +9,7 @@ export interface SpeechSettings {
   delay: number;
   phoneCallEnabled: boolean;
   videoCallEnabled: boolean;
+  humeApiKey: string;
 }
 
 interface AppContextType {
@@ -49,6 +50,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     delay: 0,
     phoneCallEnabled: false,
     videoCallEnabled: false,
+    humeApiKey: '',
   });
 
   const addShortcut = (text: string) => {
