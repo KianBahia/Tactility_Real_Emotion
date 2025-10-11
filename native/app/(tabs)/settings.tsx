@@ -4,7 +4,34 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useApp, Voice } from '@/contexts/AppContext';
-import { voiceService } from '@/services/VoiceService';
+
+// Function to fetch voices from Hume API
+const fetchVoicesFromHumeAPI = async (apiKey: string, provider: 'HUME_AI' | 'CUSTOM_VOICE'): Promise<Voice[]> => {
+  try {
+    // Construct URL with query parameters as per the API documentation
+    const url = new URL('https://api.hume.ai/v0/tts/voices');
+    url.searchParams.append('provider', provider);
+    url.searchParams.append('page_size', '100'); // Get more voices
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'X-Hume-Api-Key': apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.voices_page || [];
+  } catch (error) {
+    console.error('Error fetching voices from Hume API:', error);
+    throw error;
+  }
+};
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
@@ -30,8 +57,7 @@ export default function SettingsScreen() {
 
     setLoading(true);
     try {
-      voiceService.setApiKey(settings.humeApiKey);
-      const fetchedVoices = await voiceService.fetchVoicesWithProvider(selectedProvider);
+      const fetchedVoices = await fetchVoicesFromHumeAPI(settings.humeApiKey, selectedProvider);
       setVoices(fetchedVoices);
     } catch (error) {
       Alert.alert('Error', 'Failed to load voices. Please check your API key.');
@@ -53,8 +79,7 @@ export default function SettingsScreen() {
     setSelectedProvider(provider);
     setLoading(true);
     try {
-      voiceService.setApiKey(settings.humeApiKey);
-      const fetchedVoices = await voiceService.fetchVoicesWithProvider(provider);
+      const fetchedVoices = await fetchVoicesFromHumeAPI(settings.humeApiKey, provider);
       setVoices(fetchedVoices);
     } catch (error) {
       Alert.alert('Error', 'Failed to load voices. Please check your API key.');
