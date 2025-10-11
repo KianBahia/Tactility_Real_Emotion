@@ -1,32 +1,53 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from "react-native";
-import * as Speech from "expo-speech";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useApp } from "@/contexts/AppContext";
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useApp } from '@/contexts/AppContext';
+import { humeTTS } from '@/services/HumeTTS';
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
   const { history, settings, clearHistory } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [isHumeInitialized, setIsHumeInitialized] = useState(false);
 
-  const handleSpeak = (text: string, index: number) => {
-    Speech.stop();
-    Speech.speak(text, {
-      rate: settings.rate,
-      pitch: settings.pitch,
-      onStart: () => setPlayingIndex(index),
-      onDone: () => setPlayingIndex(null),
-      onStopped: () => setPlayingIndex(null),
-    });
+  // Initialize Hume TTS when API key is available
+  useEffect(() => {
+    if (settings.humeApiKey) {
+      humeTTS.setApiKey(settings.humeApiKey);
+      setIsHumeInitialized(true);
+    } else {
+      setIsHumeInitialized(false);
+    }
+  }, [settings.humeApiKey]);
+
+  const handleSpeak = async (text: string, index: number) => {
+    if (!isHumeInitialized) {
+      Alert.alert('API Key Required', 'Please set your Hume API key in settings to use text-to-speech.');
+      return;
+    }
+
+    try {
+      await humeTTS.speak(text, {
+        rate: settings.rate,
+        pitch: settings.pitch,
+        voice: settings.voice?.name || 'Ava Song',
+      });
+      setPlayingIndex(index);
+      
+      // Monitor speech status
+      const checkStatus = setInterval(() => {
+        if (!humeTTS.isSpeaking()) {
+          setPlayingIndex(null);
+          clearInterval(checkStatus);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Speech error:', error);
+      Alert.alert('Speech Error', 'Failed to speak text. Please check your API key and try again.');
+      setPlayingIndex(null);
+    }
   };
 
   const handleClearHistory = () => {

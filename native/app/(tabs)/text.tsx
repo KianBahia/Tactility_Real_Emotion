@@ -12,11 +12,11 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import * as Speech from "expo-speech";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
+import { humeTTS } from "@/services/HumeTTS";
 
 export default function TextScreen() {
   const colorScheme = useColorScheme();
@@ -31,53 +31,60 @@ export default function TextScreen() {
 
     addToHistory(text);
 
-    // Split text by newlines to get sentences
-    const sentences = text.split("\n").filter((s) => s.trim().length > 0);
-
-    if (!settings.highlightSpokenText || sentences.length === 0) {
-      // If highlighting is off or no sentences, just speak the whole text
-      Speech.speak(text, {
-        rate: settings.rate,
-        pitch: settings.pitch,
-        onStart: () => setIsPlaying(true),
-        onDone: () => {
-          setIsPlaying(false);
-          setCurrentSentenceIndex(-1);
-        },
-        onStopped: () => {
-          setIsPlaying(false);
-          setCurrentSentenceIndex(-1);
-        },
-      });
+    // Check if Hume TTS is initialized
+    if (!settings.humeApiKey) {
+      Alert.alert('API Key Required', 'Please set your Hume API key in settings to use text-to-speech.');
       return;
     }
 
-    // Speak each sentence with highlighting
-    setIsPlaying(true);
-    isSpeakingRef.current = true;
+    try {
+      // Set API key for Hume TTS
+      humeTTS.setApiKey(settings.humeApiKey);
 
-    for (let i = 0; i < sentences.length; i++) {
-      if (!isSpeakingRef.current) break;
+      // Split text by newlines to get sentences
+      const sentences = text.split("\n").filter((s) => s.trim().length > 0);
 
-      setCurrentSentenceIndex(i);
-
-      await new Promise<void>((resolve) => {
-        Speech.speak(sentences[i], {
+      if (!settings.highlightSpokenText || sentences.length === 0) {
+        // If highlighting is off or no sentences, just speak the whole text
+        setIsPlaying(true);
+        await humeTTS.speak(text, {
+          voice: settings.selectedVoiceId || undefined,
           rate: settings.rate,
           pitch: settings.pitch,
-          onDone: () => resolve(),
-          onStopped: () => resolve(),
         });
-      });
-    }
+        setIsPlaying(false);
+        setCurrentSentenceIndex(-1);
+        return;
+      }
 
-    isSpeakingRef.current = false;
-    setIsPlaying(false);
-    setCurrentSentenceIndex(-1);
+      // Speak each sentence with highlighting
+      setIsPlaying(true);
+      isSpeakingRef.current = true;
+
+      for (let i = 0; i < sentences.length; i++) {
+        if (!isSpeakingRef.current) break;
+
+        setCurrentSentenceIndex(i);
+        await humeTTS.speak(sentences[i], {
+          voice: settings.selectedVoiceId || undefined,
+          rate: settings.rate,
+          pitch: settings.pitch,
+        });
+      }
+
+      isSpeakingRef.current = false;
+      setIsPlaying(false);
+      setCurrentSentenceIndex(-1);
+    } catch (error) {
+      console.error('Error with Hume TTS:', error);
+      Alert.alert('TTS Error', 'Failed to speak text. Please check your API key and try again.');
+      setIsPlaying(false);
+      setCurrentSentenceIndex(-1);
+    }
   };
 
   const handlePause = () => {
-    Speech.stop();
+    humeTTS.stop();
     isSpeakingRef.current = false;
     setIsPlaying(false);
     setCurrentSentenceIndex(-1);

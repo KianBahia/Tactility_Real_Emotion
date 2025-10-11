@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
+export interface Voice {
+  id: string;
+  name: string;
+  provider: 'HUME_AI' | 'CUSTOM_VOICE';
+}
+
 export interface SpeechSettings {
-  voice: any;
+  voice: Voice | null;
+  selectedVoiceId: string | null;
   rate: number;
   pitch: number;
   speakAsYouType: "off" | "words" | "sentences" | "lines";
@@ -9,6 +16,7 @@ export interface SpeechSettings {
   delay: number;
   phoneCallEnabled: boolean;
   videoCallEnabled: boolean;
+  humeApiKey: string;
 }
 
 interface AppContextType {
@@ -43,6 +51,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [settings, setSettings] = useState<SpeechSettings>({
     voice: null,
+    selectedVoiceId: null,
     rate: 1.0,
     pitch: 1.0,
     speakAsYouType: "off",
@@ -50,6 +59,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     delay: 0,
     phoneCallEnabled: false,
     videoCallEnabled: false,
+    humeApiKey: '',
   });
 
   const addShortcut = (text: string) => {
