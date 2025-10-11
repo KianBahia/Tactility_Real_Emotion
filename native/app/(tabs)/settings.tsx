@@ -1,17 +1,67 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useApp } from '@/contexts/AppContext';
+import { useApp, Voice } from '@/contexts/AppContext';
+import { voiceService } from '@/services/VoiceService';
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const { settings, updateSettings } = useApp();
   const [humeApiKey, setHumeApiKey] = useState(settings.humeApiKey);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<'HUME_AI' | 'CUSTOM_VOICE'>('HUME_AI');
 
-  const handleVoiceSettings = () => {
-    Alert.alert('Voice Settings', 'Voice selection would be implemented here');
+  const handleVoiceSettings = async () => {
+    if (!settings.humeApiKey) {
+      Alert.alert('API Key Required', 'Please set your Hume API key first to access voice options.');
+      return;
+    }
+
+    setShowVoiceModal(true);
+    await loadVoices();
+  };
+
+  const loadVoices = async () => {
+    if (!settings.humeApiKey) return;
+
+    setLoading(true);
+    try {
+      voiceService.setApiKey(settings.humeApiKey);
+      const fetchedVoices = await voiceService.fetchVoicesWithProvider(selectedProvider);
+      setVoices(fetchedVoices);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load voices. Please check your API key.');
+      console.error('Error loading voices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVoiceSelect = (voice: Voice) => {
+    updateSettings({ 
+      voice, 
+      selectedVoiceId: voice.id 
+    });
+    setShowVoiceModal(false);
+  };
+
+  const handleProviderChange = async (provider: 'HUME_AI' | 'CUSTOM_VOICE') => {
+    setSelectedProvider(provider);
+    setLoading(true);
+    try {
+      voiceService.setApiKey(settings.humeApiKey);
+      const fetchedVoices = await voiceService.fetchVoicesWithProvider(provider);
+      setVoices(fetchedVoices);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load voices. Please check your API key.');
+      console.error('Error loading voices:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSpeakAsYouTypeSettings = () => {
@@ -40,7 +90,7 @@ export default function SettingsScreen() {
               <View style={styles.settingText}>
                 <Text style={styles.settingTitle}>Voices</Text>
                 <Text style={styles.settingSubtitle}>
-                  {settings.voice?.name || 'Default Voice'}
+                  {settings.voice?.name || 'Select a voice'}
                 </Text>
               </View>
             </View>
@@ -161,6 +211,99 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Voice Selection Modal */}
+      <Modal
+        visible={showVoiceModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowVoiceModal(false)}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowVoiceModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Voice</Text>
+            <View style={styles.modalPlaceholder} />
+          </View>
+
+          {/* Provider Selection */}
+          <View style={styles.providerContainer}>
+            <TouchableOpacity
+              style={[
+                styles.providerButton,
+                selectedProvider === 'HUME_AI' && styles.providerButtonActive
+              ]}
+              onPress={() => handleProviderChange('HUME_AI')}
+            >
+              <Text style={[
+                styles.providerButtonText,
+                selectedProvider === 'HUME_AI' && styles.providerButtonTextActive
+              ]}>
+                Hume AI Voices
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.providerButton,
+                selectedProvider === 'CUSTOM_VOICE' && styles.providerButtonActive
+              ]}
+              onPress={() => handleProviderChange('CUSTOM_VOICE')}
+            >
+              <Text style={[
+                styles.providerButtonText,
+                selectedProvider === 'CUSTOM_VOICE' && styles.providerButtonTextActive
+              ]}>
+                Custom Voices
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Voices List */}
+          <ScrollView style={styles.voicesList}>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={styles.loadingText}>Loading voices...</Text>
+              </View>
+            ) : (
+              voices.map((voice) => (
+                <TouchableOpacity
+                  key={voice.id}
+                  style={[
+                    styles.voiceItem,
+                    settings.selectedVoiceId === voice.id && styles.voiceItemSelected
+                  ]}
+                  onPress={() => handleVoiceSelect(voice)}
+                >
+                  <View style={styles.voiceContent}>
+                    <Text style={styles.voiceName}>{voice.name}</Text>
+                    <Text style={styles.voiceProvider}>
+                      {voice.provider === 'HUME_AI' ? 'Hume AI' : 'Custom'}
+                    </Text>
+                  </View>
+                  {settings.selectedVoiceId === voice.id && (
+                    <IconSymbol name="checkmark" size={20} color="#3B82F6" />
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
+            {!loading && voices.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No voices available</Text>
+                <Text style={styles.emptySubtext}>
+                  Make sure your API key is correct and try again
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -267,5 +410,125 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalCloseButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: '#3B82F6',
+    fontWeight: '500',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  modalPlaceholder: {
+    width: 60,
+  },
+  providerContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  providerButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  providerButtonActive: {
+    backgroundColor: '#3B82F6',
+  },
+  providerButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  providerButtonTextActive: {
+    color: 'white',
+  },
+  voicesList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  voiceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  voiceItemSelected: {
+    backgroundColor: '#EBF4FF',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+  },
+  voiceContent: {
+    flex: 1,
+  },
+  voiceName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  voiceProvider: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
   },
 });
