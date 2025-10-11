@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,11 +12,11 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
-import * as Speech from "expo-speech";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
+import { humeTTS } from "@/services/HumeTTS";
 
 export default function TextScreen() {
   const colorScheme = useColorScheme();
@@ -24,24 +24,58 @@ export default function TextScreen() {
   const [text, setText] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [highlightedText, setHighlightedText] = useState("");
+  const [isHumeInitialized, setIsHumeInitialized] = useState(false);
 
-  const handlePlay = () => {
+  // Initialize Hume TTS when API key is available
+  useEffect(() => {
+    if (settings.humeApiKey) {
+      humeTTS.setApiKey(settings.humeApiKey);
+      setIsHumeInitialized(true);
+    } else {
+      setIsHumeInitialized(false);
+    }
+  }, [settings.humeApiKey]);
+
+  const handlePlay = async () => {
     if (!text) return;
+
+    if (!isHumeInitialized) {
+      Alert.alert('API Key Required', 'Please set your Hume API key in settings to use text-to-speech.');
+      return;
+    }
 
     addToHistory(text);
 
-    Speech.speak(text, {
-      rate: settings.rate,
-      pitch: settings.pitch,
-      onStart: () => setIsPlaying(true),
-      onDone: () => setIsPlaying(false),
-      onStopped: () => setIsPlaying(false),
-    });
+    try {
+      await humeTTS.speak(text, {
+        rate: settings.rate,
+        pitch: settings.pitch,
+        voice: settings.voice?.name || 'Ava Song',
+      });
+      setIsPlaying(true);
+      
+      // Monitor speech status
+      const checkStatus = setInterval(() => {
+        if (!humeTTS.isSpeaking()) {
+          setIsPlaying(false);
+          clearInterval(checkStatus);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Speech error:', error);
+      Alert.alert('Speech Error', 'Failed to speak text. Please check your API key and try again.');
+      setIsPlaying(false);
+    }
   };
 
-  const handlePause = () => {
-    Speech.stop();
-    setIsPlaying(false);
+  const handlePause = async () => {
+    try {
+      await humeTTS.pause();
+      setIsPlaying(false);
+    } catch (error) {
+      console.error('Pause error:', error);
+      setIsPlaying(false);
+    }
   };
 
   const handleAddShortcut = () => {
