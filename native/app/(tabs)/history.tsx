@@ -15,7 +15,7 @@ import { useApp } from "@/contexts/AppContext";
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
-  const { history, settings } = useApp();
+  const { history, settings, deleteHistory, clearAllHistory } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
   const handleSpeak = (text: string, index: number) => {
@@ -29,6 +29,36 @@ export default function HistoryScreen() {
     });
   };
 
+  const handleDeleteHistory = (index: number) => {
+    Alert.alert(
+      'Delete History Item',
+      'Are you sure you want to delete this history item?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => deleteHistory(index)
+        }
+      ]
+    );
+  };
+
+  const handleClearAllHistory = () => {
+    Alert.alert(
+      'Clear All History',
+      'Are you sure you want to delete all history items? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear All', 
+          style: 'destructive',
+          onPress: () => clearAllHistory()
+        }
+      ]
+    );
+  };
+
   return (
     <View
       style={[
@@ -37,7 +67,21 @@ export default function HistoryScreen() {
       ]}
     >
       {/* Header */}
-      <View style={styles.header} />
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerEmoji}>📝</Text>
+          <Text style={styles.headerTitle}>History</Text>
+        </View>
+        {history.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearAllButton}
+            onPress={handleClearAllHistory}
+          >
+            <IconSymbol name="trash.fill" size={16} color="white" />
+            <Text style={styles.clearAllText}>Clear All</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* History List */}
       <ScrollView
@@ -78,16 +122,28 @@ export default function HistoryScreen() {
                     {item}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.speakButton}
-                  onPress={() => handleSpeak(item, index)}
-                >
-                  <IconSymbol
-                    name="speaker.wave.2.fill"
-                    size={16}
-                    color="white"
-                  />
-                </TouchableOpacity>
+                <View style={styles.historyActions}>
+                  <TouchableOpacity
+                    style={styles.speakButton}
+                    onPress={() => handleSpeak(item, index)}
+                  >
+                    <IconSymbol
+                      name="speaker.wave.2.fill"
+                      size={16}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteHistory(index)}
+                  >
+                    <IconSymbol
+                      name="trash.fill"
+                      size={16}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -117,6 +173,37 @@ const styles = StyleSheet.create({
   header: {
     height: 80,
     backgroundColor: "#8B5CF6", // purple-500
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerEmoji: {
+    fontSize: 32,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+  },
+  clearAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 4,
+  },
+  clearAllText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "500",
   },
   content: {
     flex: 1,
@@ -163,11 +250,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
+  historyActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
   speakButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: "#8B5CF6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#EF4444",
     justifyContent: "center",
     alignItems: "center",
   },

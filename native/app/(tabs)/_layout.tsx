@@ -16,22 +16,23 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
       }}
+      initialRouteName="shortcuts"
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Text",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="text.bubble.fill" color={color} />
-          ),
-        }}
-      />
       <Tabs.Screen
         name="shortcuts"
         options={{
           title: "Shortcuts",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="bolt.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="text"
+        options={{
+          title: "Text",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="text.bubble.fill" color={color} />
           ),
         }}
       />
