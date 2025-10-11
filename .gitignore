@@ -34,3 +34,5 @@ __pycache__/
 # VS Code settings
 .vscode/
 hume_examples/.env
+
+.env
