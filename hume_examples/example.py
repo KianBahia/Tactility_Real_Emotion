@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 from hume import AsyncHumeClient
 from hume.tts import PostedUtterance, PostedUtteranceVoiceWithName
 
-VOICE_NAME = "Ava Song"  # this is a standard voice, for the future we can updating it using shuhan voice 
+
+
+VOICE_NAME = "Shuhan2"
+ # this is a standard voice, for the future we can updating it using shuhan voice 
 OUT_DIR = Path("out_tts")
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # here you can find various prompts to test how the emotional token works.
 EMOTION_PRESETS = {
@@ -137,7 +141,7 @@ async def synthesize_one(client: AsyncHumeClient, text: str, emotion: str, ext: 
     # setting up 
     utterance_kwargs = {
         "text": text,
-        "voice": PostedUtteranceVoiceWithName(name=VOICE_NAME, provider="HUME_AI"),
+        "voice": PostedUtteranceVoiceWithName(name=VOICE_NAME),
         "description": preset["description"],
         "speed": preset["speed"],
     }
