@@ -1,16 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ScrollView,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  TouchableWithoutFeedback,
 } from "react-native";
 import * as Speech from "expo-speech";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -18,222 +13,126 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
 
-export default function TextScreen() {
+export default function ShortcutsScreen() {
   const colorScheme = useColorScheme();
-  const { addToHistory, addShortcut, settings } = useApp();
-  const [text, setText] = useState("");
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [highlightedText, setHighlightedText] = useState("");
+  const { shortcuts, deleteShortcut, settings } = useApp();
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
-  const handlePlay = () => {
-    if (!text) return;
-
-    addToHistory(text);
-
+  const handleSpeak = (text: string, index: number) => {
+    Speech.stop();
     Speech.speak(text, {
       rate: settings.rate,
       pitch: settings.pitch,
-      onStart: () => setIsPlaying(true),
-      onDone: () => setIsPlaying(false),
-      onStopped: () => setIsPlaying(false),
+      onStart: () => setPlayingIndex(index),
+      onDone: () => setPlayingIndex(null),
+      onStopped: () => setPlayingIndex(null),
     });
   };
 
-  const handlePause = () => {
-    Speech.stop();
-    setIsPlaying(false);
-  };
-
-  const handleAddShortcut = () => {
-    if (text) {
-      addShortcut(text);
-      Alert.alert("Shortcut Added", "Text added to shortcuts!");
-    }
-  };
-
-  const handleEmojiPress = (emoji: string) => {
-    setText((prev) => prev + emoji);
-  };
-
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
-
-  const handleClearText = () => {
-    setText("");
-    dismissKeyboard();
+  const handleDeleteShortcut = (index: number) => {
+    Alert.alert(
+      "Delete Shortcut",
+      "Are you sure you want to delete this shortcut?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteShortcut(index),
+        },
+      ]
+    );
   };
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[
         styles.container,
         { backgroundColor: Colors[colorScheme ?? "light"].background },
       ]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header} />
+      {/* Header */}
+      <View style={styles.header} />
 
-          {/* Emoji Bar */}
-          <View
-            style={[
-              styles.emojiBar,
-              {
-                backgroundColor: Colors[colorScheme ?? "light"].background,
-                borderBottomColor: Colors[colorScheme ?? "light"].icon,
-              },
-            ]}
-          >
-            <EmojiBar onEmojiPress={handleEmojiPress} />
+      {/* Shortcuts List */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {shortcuts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>
+              No shortcuts yet. Add from Text screen!
+            </Text>
           </View>
-
-          {/* Scrollable Content */}
-          <ScrollView
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Text Area */}
-            <View style={styles.textArea}>
-              <TextInput
-                value={text}
-                onChangeText={setText}
-                placeholder="Start typing..."
-                placeholderTextColor={Colors[colorScheme ?? "light"].icon}
+        ) : (
+          <View style={styles.shortcutsList}>
+            {shortcuts.map((shortcut, index) => (
+              <View
+                key={index}
                 style={[
-                  styles.textInput,
-                  { color: Colors[colorScheme ?? "light"].text },
-                  settings.highlightSpokenText && highlightedText
-                    ? styles.highlightedText
-                    : null,
+                  styles.shortcutItem,
+                  {
+                    backgroundColor:
+                      Colors[colorScheme ?? "light"].background === "#fff"
+                        ? "white"
+                        : "#2D2D2D",
+                  },
+                  playingIndex === index && styles.playingItem,
                 ]}
-                multiline
-                textAlignVertical="top"
-                autoFocus={false}
-              />
-            </View>
-          </ScrollView>
-
-          {/* Controls */}
-          <View
-            style={[
-              styles.controls,
-              {
-                backgroundColor: Colors[colorScheme ?? "light"].background,
-                borderTopColor: Colors[colorScheme ?? "light"].icon,
-              },
-            ]}
-          >
-            {/* Left side - empty for keyboard dismissal */}
-            <View style={styles.controlsLeft} />
-
-            {/* Center - main control buttons */}
-            <View style={styles.controlsCenter}>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  (!text || isPlaying) && styles.disabledButton,
-                ]}
-                onPress={handlePlay}
-                disabled={!text || isPlaying}
               >
-                <IconSymbol name="play.fill" size={20} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  !isPlaying && styles.disabledButton,
-                ]}
-                onPress={handlePause}
-                disabled={!isPlaying}
-              >
-                <IconSymbol name="pause.fill" size={20} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  styles.addButton,
-                  !text && styles.disabledButton,
-                ]}
-                onPress={handleAddShortcut}
-                disabled={!text}
-              >
-                <IconSymbol name="plus" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Right side - Clear button */}
-            <View style={styles.controlsRight}>
-              <TouchableOpacity
-                style={[styles.clearButton, !text && styles.disabledButton]}
-                onPress={handleClearText}
-                disabled={!text}
-              >
-                <Text style={styles.clearButtonText}>Clear</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.shortcutTextContainer}
+                  onPress={() => handleSpeak(shortcut, index)}
+                >
+                  <Text
+                    style={[
+                      styles.shortcutText,
+                      { color: Colors[colorScheme ?? "light"].text },
+                    ]}
+                  >
+                    {shortcut}
+                  </Text>
+                </TouchableOpacity>
+                <View style={styles.shortcutActions}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleSpeak(shortcut, index)}
+                  >
+                    <IconSymbol
+                      name="speaker.wave.2.fill"
+                      size={16}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={() => handleDeleteShortcut(index)}
+                  >
+                    <IconSymbol name="trash.fill" size={16} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
           </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
-  );
-}
+        )}
+      </ScrollView>
 
-// Emoji Bar Component
-interface EmojiBarProps {
-  onEmojiPress: (emoji: string) => void;
-}
-
-function EmojiBar({ onEmojiPress }: EmojiBarProps) {
-  const colorScheme = useColorScheme();
-  const emojis = [
-    "🤩", // enthusiasm for a job (formal)
-    "🤣", // funny/sarcastic
-    "🥳", // happy
-    "😡", // angry
-    "😢", // sadly/depression
-    "🙂", // neutral
-    "🫠", // anxious
-    "🤢", // awful
-    "🫣", // shy
-    "😑", // don't care
-    "🥺", // admire
-  ];
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={styles.emojiScrollView}
-      contentContainerStyle={styles.emojiContainer}
-      keyboardShouldPersistTaps="always"
-    >
-      {emojis.map((emoji, idx) => (
-        <TouchableOpacity
-          key={idx}
-          style={[
-            styles.emojiButton,
-            {
-              backgroundColor:
-                Colors[colorScheme ?? "light"].background === "#fff"
-                  ? "white"
-                  : "#2D2D2D",
-            },
-          ]}
-          onPress={(e) => {
-            e.stopPropagation();
-            onEmojiPress(emoji);
-          }}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.emojiText}>{emoji}</Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+      {/* Info Footer */}
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: Colors[colorScheme ?? "light"].background,
+            borderTopColor: Colors[colorScheme ?? "light"].icon,
+          },
+        ]}
+      >
+        <Text style={styles.footerText}>
+          Tap a shortcut to speak it instantly
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -243,102 +142,75 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 80,
-    backgroundColor: "#3B82F6", // blue-500
+    backgroundColor: "#10B981", // green-500
   },
-  emojiBar: {
-    height: 60,
-    borderBottomWidth: 1,
-  },
-  emojiScrollView: {
+  content: {
     flex: 1,
   },
-  emojiContainer: {
-    alignItems: "center",
-    paddingHorizontal: 16,
+  contentContainer: {
+    padding: 16,
   },
-  emojiButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  emptyState: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 4,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  shortcutsList: {
+    gap: 12,
+  },
+  shortcutItem: {
+    borderRadius: 8,
+    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
-  emojiText: {
-    fontSize: 20,
+  playingItem: {
+    borderColor: "#3B82F6",
+    backgroundColor: "#EFF6FF",
   },
-  scrollContainer: {
+  shortcutTextContainer: {
     flex: 1,
+    marginBottom: 12,
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  textArea: {
-    flex: 1,
-    padding: 16,
-    minHeight: 200,
-  },
-  textInput: {
-    flex: 1,
+  shortcutText: {
     fontSize: 16,
     lineHeight: 24,
-    textAlignVertical: "top",
   },
-  highlightedText: {
-    backgroundColor: "#FEF3C7",
-  },
-  controls: {
-    height: 56,
-    borderTopWidth: 1,
+  shortcutActions: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
+    gap: 8,
   },
-  controlsLeft: {
-    flex: 1,
-  },
-  controlsCenter: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  controlsRight: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  controlButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#3B82F6",
     justifyContent: "center",
     alignItems: "center",
   },
-  addButton: {
-    backgroundColor: "#10B981",
-  },
-  disabledButton: {
-    backgroundColor: "#D1D5DB",
-  },
-  clearButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
+  deleteButton: {
     backgroundColor: "#EF4444",
+  },
+  footer: {
+    height: 64,
+    borderTopWidth: 1,
     justifyContent: "center",
     alignItems: "center",
-    minWidth: 80,
-    minHeight: 40,
+    paddingHorizontal: 16,
   },
-  clearButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+  footerText: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

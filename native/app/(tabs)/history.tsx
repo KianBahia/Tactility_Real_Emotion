@@ -15,7 +15,7 @@ import { useApp } from "@/contexts/AppContext";
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
-  const { history, settings } = useApp();
+  const { history, settings, clearHistory } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
   const handleSpeak = (text: string, index: number) => {
@@ -29,6 +29,21 @@ export default function HistoryScreen() {
     });
   };
 
+  const handleClearHistory = () => {
+    Alert.alert(
+      "Clear History",
+      "Are you sure you want to clear all history?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: () => clearHistory(),
+        },
+      ]
+    );
+  };
+
   return (
     <View
       style={[
@@ -38,6 +53,23 @@ export default function HistoryScreen() {
     >
       {/* Header */}
       <View style={styles.header} />
+
+      {/* Clear History Button */}
+      {history.length > 0 && (
+        <View
+          style={[
+            styles.clearButtonContainer,
+            { backgroundColor: Colors[colorScheme ?? "light"].background },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.clearHistoryButton}
+            onPress={handleClearHistory}
+          >
+            <Text style={styles.clearHistoryButtonText}>Clear All History</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* History List */}
       <ScrollView
@@ -117,6 +149,22 @@ const styles = StyleSheet.create({
   header: {
     height: 80,
     backgroundColor: "#8B5CF6", // purple-500
+  },
+  clearButtonContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  clearHistoryButton: {
+    backgroundColor: "#EF4444",
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  clearHistoryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
   content: {
     flex: 1,

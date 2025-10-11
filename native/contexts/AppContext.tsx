@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 export interface SpeechSettings {
   voice: any;
   rate: number;
   pitch: number;
-  speakAsYouType: 'off' | 'words' | 'sentences' | 'lines';
+  speakAsYouType: "off" | "words" | "sentences" | "lines";
   highlightSpokenText: boolean;
   delay: number;
   phoneCallEnabled: boolean;
@@ -19,6 +19,7 @@ interface AppContextType {
   history: string[];
   setHistory: (history: string[]) => void;
   addToHistory: (text: string) => void;
+  clearHistory: () => void;
   settings: SpeechSettings;
   updateSettings: (newSettings: Partial<SpeechSettings>) => void;
 }
@@ -27,24 +28,24 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [shortcuts, setShortcuts] = useState<string[]>([
-    'Hello, how are you?',
-    'Thank you very much',
-    'I need help',
-    'Good morning',
+    "Hello, how are you?",
+    "Thank you very much",
+    "I need help",
+    "Good morning",
   ]);
-  
+
   const [history, setHistory] = useState<string[]>([
-    'Hello, how are you today?',
-    'Thank you for your help',
-    'I need assistance with this',
-    'Good morning everyone',
+    "Hello, how are you today?",
+    "Thank you for your help",
+    "I need assistance with this",
+    "Good morning everyone",
   ]);
-  
+
   const [settings, setSettings] = useState<SpeechSettings>({
     voice: null,
     rate: 1.0,
     pitch: 1.0,
-    speakAsYouType: 'off',
+    speakAsYouType: "off",
     highlightSpokenText: false,
     delay: 0,
     phoneCallEnabled: false,
@@ -67,8 +68,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearHistory = () => {
+    setHistory([]);
+  };
+
   const updateSettings = (newSettings: Partial<SpeechSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    setSettings((prev) => ({ ...prev, ...newSettings }));
   };
 
   return (
@@ -81,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         history,
         setHistory,
         addToHistory,
+        clearHistory,
         settings,
         updateSettings,
       }}
@@ -93,7 +99,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 export function useApp() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+    throw new Error("useApp must be used within an AppProvider");
   }
   return context;
 }

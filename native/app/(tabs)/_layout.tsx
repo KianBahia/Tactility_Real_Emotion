@@ -20,18 +20,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Text",
+          title: "Shortcuts",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="text.bubble.fill" color={color} />
+            <IconSymbol size={28} name="bolt.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="shortcuts"
+        name="text"
         options={{
-          title: "Shortcuts",
+          title: "Text",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="bolt.fill" color={color} />
+            <IconSymbol size={28} name="text.bubble.fill" color={color} />
           ),
         }}
       />
