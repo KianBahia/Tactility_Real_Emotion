@@ -18,20 +18,52 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
 import { humeTTS } from "@/services/HumeTTS";
 
-type Emotion = 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
+type Emotion =
+  | 'neutral'
+  | 'angry'
+  | 'angry_2'
+  | 'angry_3'
+  | 'happy'
+  | 'happy_2'
+  | 'happy_3'
+  | 'enthusiastic_formal'
+  | 'enthusiastic_formal_2'
+  | 'enthusiastic_formal_3'
+  | 'doubt'
+  | 'funny_sarcastic'
+  | 'anxious'
+  | 'shy'
+  | 'dont_care'
+  | 'admire'
+  | 'awe'
+  | 'shock'
+  | 'scared'
+  | 'scared_2'
+  | 'scared_3'
+  | 'disgusted'
+  | 'disgusted_2'
+  | 'disgusted_3'
+  | 'sad'
+  | 'sad_2'
+  | 'sad_3';
+
 
 const emojis = [
-  "🤩", // enthusiasm for a job (formal)
-  "🤣", // funny/sarcastic
+  "😊", // enthusiasm for a job (formal)
+  "🤪", // funny/sarcastic
   "🥳", // happy
-  "😡", // angry
+  "😡", // angrys
   "😢", // sadly/depression
-  "🙂", // neutral
+  "👩‍🎓", // neutral
   "🫠", // anxious
   "🤢", // awful
-  "🫣", // shy
+  "🙈", // shy
   "😑", // don't care
-  "🥺", // admire
+  "🤩", // admire
+  "🥺", //awe
+  "😱", //scared
+  "😨", //shock
+  "🤔", //doubt
 ];
 
 export default function TextScreen() {
@@ -47,48 +79,203 @@ export default function TextScreen() {
     neutral: {
       description:
         'Neutral voice with smooth prosody. The speaker sounds calm, balanced, and sonically neutral. Use this preset when you want a simple, clear read without emotional color.',
-      speed: 1.0,
+      speed: 0.95,
     },
-    happy: {
-      description:
-        'A warm, upbeat voice conveying happiness: bright tone, slightly faster tempo, and positive intonation. Use for cheerful messages and friendly prompts.',
-      speed: 1.05,
-      trailing_silence: 0.06,
-    },
-    sad: {
-      description:
-        'A soft, lower-volume voice with slower tempo and a melancholic timbre. Use subtle breathiness and elongated vowels to convey sadness.',
-      speed: 0.97,
-      trailing_silence: 0.06,
-    },
+
     angry: {
       description:
-        'An intense, clipped delivery with higher energy and sharper consonants. Higher pitch variability and slightly faster speed to convey frustration or anger.',
-      speed: 1.03,
-      trailing_silence: 0.03,
+        'Angry tone with sharp, intense energy and clipped consonants. Firm emphasis, fast pacing, and forceful delivery conveying irritation.',
+      speed: 0.85,
     },
+
+    angry_2: {
+      description:
+        'Very angry tone with raised voice, sharper emphasis, and rapid, tense rhythm — expressing clear frustration and loss of patience.',
+      speed: 1.0,
+    },
+
+    angry_3: {
+      description:
+        'Furious, explosive tone filled with tension. Loud, clipped words, forceful rhythm, and harsh downward inflection — sounds genuinely enraged and emotional.',
+      speed: 1.15,
+    },
+
+    happy: {
+      description:
+        'Genuinely happy voice with bright, energetic tone and friendly warmth. Medium-fast rhythm, expressive intonation, and clear articulation — like sharing good news with a friend.',
+      speed: 1.07,
+    },
+
+    happy_2: {
+      description:
+        'Delighted, lively tone with stronger brightness and dynamic rhythm. Smiling through every word, playful and expressive with warmth and energy that fills the voice.',
+      speed: 1.12,
+    },
+
+    happy_3: {
+      description:
+        'Ecstatic, overjoyed voice with wide-pitched laughter and quick rhythm. Overflowing enthusiasm and genuine excitement — thrilled beyond words.',
+      speed: 1.22,
+    },
+
+    enthusiastic_formal: {
+      description:
+        'Enthusiastic but formal tone with confident projection, clear diction, and positive emphasis — upbeat yet polished.',
+      speed: 1.02,
+    },
+
+    enthusiastic_formal_2: {
+      description:
+        'Very enthusiastic, expressive intonation and confident rhythm; polished yet dynamic delivery with vibrant projection and upbeat emphasis.',
+      speed: 1.08,
+    },
+
+    enthusiastic_formal_3: {
+      description:
+        'Extremely enthusiastic, passionate yet articulate tone, elevated pitch range, strong rhythm, and conviction — inspiring, contagious energy as if highly motivated.',
+      speed: 1.18,
+    },
+
     doubt: {
       description:
-        'A questioning, cautious tone with small hesitations and a tentative upward inflection at the end of phrases. Use slight pauses between clauses and a subtle breathy quality.',
-      speed: 0.99,
-      trailing_silence: 0.04,
+        'Hesitant, tentative tone with light pauses and rising intonation. Elongated vowels and gentle upward phrasing convey uncertainty.',
+      speed: 0.92,
+      trailing_silence: 0.6,
+    },
+
+    funny_sarcastic: {
+      description:
+        'Playful, lightly mocking tone with exaggerated intonation and slightly slower pacing. Sounds amused but insincere — as if teasing or feigning surprise. The word "wow" is drawn out with dry humor, not genuine admiration.',
+      speed: 0.98,
+      trailing_silence: 0.25,
+    },
+
+    anxious: {
+      description:
+        'Rapid, breathy, tense tone with slight tremor and rising intonation. Scattered pacing conveys nervous energy or worry.',
+      speed: 1.12,
+    },
+
+    shy: {
+      description:
+        'Soft, quiet, hesitant, and breathy tone with minimal projection and gentle downward intonation.',
+      speed: 0.9,
+    },
+
+    dont_care: {
+      description:
+        'Low-energy, slightly dismissive but weary tone. Soft sighs, short pauses, and a casual rhythm — minimal affect but still humanized with small breaths.',
+      speed: 0.96,
+      trailing_silence: 0.25,
+    },
+
+    admire: {
+      description:
+        'Warm, energetic tone with elevated pitch on key words, sincere resonance, and glowing vocal quality.',
+      speed: 1.0,
+    },
+
+
+    awe: {
+      description:
+        'Breathless, reverent tone with widened pitch range and long, airy pauses. Soft but intense delivery as if witnessing something vast, beautiful, or beyond comprehension.',
+      speed: 0.88,
+      trailing_silence: 0.4,
+    },
+
+    shock: {
+      description:
+        'Sudden, sharp intake of breath followed by tense, clipped delivery. Uneven pacing with bursts of speech reflecting disbelief or surprise. Pitch jumps unpredictably, with urgency but not anger — emphasizing exclamation points naturally.',
+      speed: 0.95,
+      trailing_silence: 0.2,
+    },
+
+    scared: {
+      description:
+        'Slightly scared, uneasy tone — tense but trying to stay calm. Voice trembles subtly, breath a bit shallow, cautious pacing.',
+      speed: 0.95,
+    },
+
+    scared_2: {
+      description:
+        'Scared, trembling voice with faster breathing and rising pitch. Nervous hesitations and rushed words reflect real fear.',
+      speed: 1.05,
+    },
+
+    scared_3: {
+      description:
+        'Terrified, panicked tone with gasping between words. High-pitched, desperate voice with uneven rhythm — sounds like shouting to survive.',
+      speed: 1.15,
+    },
+
+    disgusted: {
+      description:
+        'Slightly disgusted tone with mild tension and restrained annoyance. Short, clipped phrasing and quiet exhalation at sentence ends.',
+      speed: 1.0,
+    },
+
+    disgusted_2: {
+      description:
+        'Clearly disgusted tone with nasal tension and sharper articulation. Audible scoffing or sighing between phrases, expressing strong disapproval.',
+      speed: 0.95,
+    },
+
+    disgusted_3: {
+      description:
+        'Intensely disgusted tone with harsh, repelled resonance. Thick with contempt and audible recoil — drawn-out vowels and strong emphasis as if physically repulsed.',
+      speed: 0.9,
+    },
+
+    sad: {
+      description:
+        'Slightly sad, soft and reflective tone. Mild melancholy, gentle downward inflection, calm breathing, and subtle emotional weight.',
+      speed: 0.95,
+    },
+
+    sad_2: {
+      description:
+        'Sad tone with audible emotional weight; slower pace, longer pauses, gentle tremble, and subdued emphasis conveying quiet sorrow.',
+      speed: 0.85,
+    },
+
+    sad_3: {
+      description:
+        'Deeply sad, grieving tone; trembling, low-pitched voice, long pauses, breathy delivery, and near-whispering through tears.',
+      speed: 0.75,
     },
   };
 
   const parseSegments = (input: string): Array<{ emotion: Emotion; text: string }> => {
     // Create a mapping from emojis to emotions
     const emojiToEmotion: Record<string, Emotion> = {
-      "🤩": "happy",    // enthusiasm for a job (formal)
-      "🤣": "happy",    // funny/sarcastic
+      "😊": "enthusiastic_formal",    // enthusiasm for a job (formal)
+      "😊😊": "enthusiastic_formal_2",
+      "😊😊😊": "enthusiastic_formal_3",
+      "🤣": "funny_sarcastic",    // funny/sarcastic
       "🥳": "happy",    // happy
+      "🥳🥳": "happy_2",    // happy
+      "🥳🥳🥳": "happy_3",    // happy
       "😡": "angry",    // angry
+      "😡😡": "angry_2",    // angry
+      "😡😡😡": "angry_3",    // angry
       "😢": "sad",      // sadly/depression
+      "😢😢": "sad_2",      // sadly/depression
+      "😢😢😢": "sad_3",      // sadly/depression
       "🙂": "neutral",  // neutral
-      "🫠": "doubt",    // anxious
-      "🤢": "angry",    // awful
-      "🫣": "doubt",    // shy
-      "😑": "neutral",  // don't care
-      "🥺": "sad",      // admire
+      "🤔": "doubt",    
+      "🫣": "shy",    // shy
+      "😑": "dont_care",  // don't care
+      "🤩": "admire",      // admire
+      "🥺": "awe",
+      "😨": "shock",
+      "😱": "scared",
+      "😱😱": "scared_2",
+      "😱😱😱": "scared_3",
+      "🤢": "disgusted",
+      "🤢🤢": "disgusted_2",
+      "🤢🤢🤢": "disgusted_3",
+      "🫠": "anxious"
+      
     };
 
     const segments: Array<{ emotion: Emotion; text: string }> = [];

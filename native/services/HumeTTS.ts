@@ -5,7 +5,7 @@ export interface HumeTTSOptions {
   rate?: number;
   pitch?: number;
   voice?: string;
-  emotion?: 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
+  emotion?: 'neutral' | 'angry' | 'angry_2' | 'angry_3' | 'happy' | 'happy_2' | 'happy_3' | 'enthusiastic_formal' | 'enthusiastic_formal_2' | 'enthusiastic_formal_3' | 'doubt' | 'funny_sarcastic' | 'anxious' | 'shy' | 'dont_care' | 'admire' | 'awe' | 'shock' | 'scared' | 'scared_2' | 'scared_3' | 'disgusted' | 'disgusted_2' | 'disgusted_3' | 'sad' | 'sad_2' | 'sad_3';
   description?: string;
   trailing_silence?: number;
   isCustomVoice?: boolean;
@@ -330,25 +330,172 @@ class HumeTTSService {
     // Emotion presets for more natural speech
     const emotionPresets = {
       neutral: {
-        description: "neutral, clear, conversational, medium pace, natural emphasis",
-        speed: 1.0,
-      },
-      happy: {
-        description: "happy, bright, upbeat, smiling tone, lively rhythm, warm and friendly",
-        speed: 1.1,
-      },
-      sad: {
-        description: "sad, soft, low energy, slow pace, gentle downward intonation, subdued",
-        speed: 0.85,
-      },
-      angry: {
-        description: "angry, sharp, intense, clipped consonants, firm emphasis, fast pace",
-        speed: 1.15,
-      },
-      doubt: {
-        description: "uncertain, hesitant, thoughtful, light pauses, rising intonation at phrase ends",
-        speed: 0.95,
-      },
+      description:
+        'Neutral voice with smooth prosody. The speaker sounds calm, balanced, and sonically neutral. Use this preset when you want a simple, clear read without emotional color.',
+      speed: 0.95,
+    },
+
+    angry: {
+      description:
+        'Angry tone with sharp, intense energy and clipped consonants. Firm emphasis, fast pacing, and forceful delivery conveying irritation.',
+      speed: 0.85,
+    },
+
+    angry_2: {
+      description:
+        'Very angry tone with raised voice, sharper emphasis, and rapid, tense rhythm — expressing clear frustration and loss of patience.',
+      speed: 1.0,
+    },
+
+    angry_3: {
+      description:
+        'Furious, explosive tone filled with tension. Loud, clipped words, forceful rhythm, and harsh downward inflection — sounds genuinely enraged and emotional.',
+      speed: 1.15,
+    },
+
+    happy: {
+      description:
+        'Genuinely happy voice with bright, energetic tone and friendly warmth. Medium-fast rhythm, expressive intonation, and clear articulation — like sharing good news with a friend.',
+      speed: 1.07,
+    },
+
+    happy_2: {
+      description:
+        'Delighted, lively tone with stronger brightness and dynamic rhythm. Smiling through every word, playful and expressive with warmth and energy that fills the voice.',
+      speed: 1.12,
+    },
+
+    happy_3: {
+      description:
+        'Ecstatic, overjoyed voice with wide-pitched laughter and quick rhythm. Overflowing enthusiasm and genuine excitement — thrilled beyond words.',
+      speed: 1.22,
+    },
+
+    enthusiastic_formal: {
+      description:
+        'Enthusiastic but formal tone with confident projection, clear diction, and positive emphasis — upbeat yet polished.',
+      speed: 1.02,
+    },
+
+    enthusiastic_formal_2: {
+      description:
+        'Very enthusiastic, expressive intonation and confident rhythm; polished yet dynamic delivery with vibrant projection and upbeat emphasis.',
+      speed: 1.08,
+    },
+
+    enthusiastic_formal_3: {
+      description:
+        'Extremely enthusiastic, passionate yet articulate tone, elevated pitch range, strong rhythm, and conviction — inspiring, contagious energy as if highly motivated.',
+      speed: 1.18,
+    },
+
+    doubt: {
+      description:
+        'Hesitant, tentative tone with light pauses and rising intonation. Elongated vowels and gentle upward phrasing convey uncertainty.',
+      speed: 0.92,
+      trailing_silence: 0.6,
+    },
+
+    funny_sarcastic: {
+      description:
+        'Playful, lightly mocking tone with exaggerated intonation and slightly slower pacing. Sounds amused but insincere — as if teasing or feigning surprise. The word "wow" is drawn out with dry humor, not genuine admiration.',
+      speed: 0.98,
+      trailing_silence: 0.25,
+    },
+
+    anxious: {
+      description:
+        'Rapid, breathy, tense tone with slight tremor and rising intonation. Scattered pacing conveys nervous energy or worry.',
+      speed: 1.12,
+    },
+
+    shy: {
+      description:
+        'Soft, quiet, hesitant, and breathy tone with minimal projection and gentle downward intonation.',
+      speed: 0.9,
+    },
+
+    dont_care: {
+      description:
+        'Low-energy, slightly dismissive but weary tone. Soft sighs, short pauses, and a casual rhythm — minimal affect but still humanized with small breaths.',
+      speed: 0.96,
+      trailing_silence: 0.25,
+    },
+
+    admire: {
+      description:
+        'Warm, energetic tone with elevated pitch on key words, sincere resonance, and glowing vocal quality.',
+      speed: 1.0,
+    },
+
+
+    awe: {
+      description:
+        'Breathless, reverent tone with widened pitch range and long, airy pauses. Soft but intense delivery as if witnessing something vast, beautiful, or beyond comprehension.',
+      speed: 0.88,
+      trailing_silence: 0.4,
+    },
+
+    shock: {
+      description:
+        'Sudden, sharp intake of breath followed by tense, clipped delivery. Uneven pacing with bursts of speech reflecting disbelief or surprise. Pitch jumps unpredictably, with urgency but not anger — emphasizing exclamation points naturally.',
+      speed: 0.95,
+      trailing_silence: 0.2,
+    },
+
+    scared: {
+      description:
+        'Slightly scared, uneasy tone — tense but trying to stay calm. Voice trembles subtly, breath a bit shallow, cautious pacing.',
+      speed: 0.95,
+    },
+
+    scared_2: {
+      description:
+        'Scared, trembling voice with faster breathing and rising pitch. Nervous hesitations and rushed words reflect real fear.',
+      speed: 1.05,
+    },
+
+    scared_3: {
+      description:
+        'Terrified, panicked tone with gasping between words. High-pitched, desperate voice with uneven rhythm — sounds like shouting to survive.',
+      speed: 1.15,
+    },
+
+    disgusted: {
+      description:
+        'Slightly disgusted tone with mild tension and restrained annoyance. Short, clipped phrasing and quiet exhalation at sentence ends.',
+      speed: 1.0,
+    },
+
+    disgusted_2: {
+      description:
+        'Clearly disgusted tone with nasal tension and sharper articulation. Audible scoffing or sighing between phrases, expressing strong disapproval.',
+      speed: 0.95,
+    },
+
+    disgusted_3: {
+      description:
+        'Intensely disgusted tone with harsh, repelled resonance. Thick with contempt and audible recoil — drawn-out vowels and strong emphasis as if physically repulsed.',
+      speed: 0.9,
+    },
+
+    sad: {
+      description:
+        'Slightly sad, soft and reflective tone. Mild melancholy, gentle downward inflection, calm breathing, and subtle emotional weight.',
+      speed: 0.95,
+    },
+
+    sad_2: {
+      description:
+        'Sad tone with audible emotional weight; slower pace, longer pauses, gentle tremble, and subdued emphasis conveying quiet sorrow.',
+      speed: 0.85,
+    },
+
+    sad_3: {
+      description:
+        'Deeply sad, grieving tone; trembling, low-pitched voice, long pauses, breathy delivery, and near-whispering through tears.',
+      speed: 0.75,
+    },
     };
 
     const preset = emotionPresets[emotion];
