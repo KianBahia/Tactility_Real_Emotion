@@ -1,5 +1,4 @@
 import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
 import { Voice } from '@/contexts/AppContext';
 
 export interface HumeTTSOptions {
@@ -68,6 +67,94 @@ class HumeTTSService {
     }
   }
 
+  async speakMultiple(utterances: any[]): Promise<void> {
+    if (!this.apiKey) {
+      throw new Error('Hume API key not set');
+    }
+
+    if (!utterances || utterances.length === 0) {
+      return;
+    }
+
+    try {
+      // Stop any currently playing audio
+      await this.stop();
+
+      console.log('Using HTTP API for multiple utterances TTS');
+      
+      const payload = {
+        utterances: utterances
+      };
+      
+      console.log('HTTP API payload:', payload);
+      
+      const response = await fetch('https://api.hume.ai/v0/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Hume-Api-Key': this.apiKey
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP API error: ${response.status} - ${errorText}`);
+      }
+      
+      // The response is JSON with base64 audio data, not a direct audio file
+      const responseText = await response.text();
+      console.log('HTTP API response received, text length:', responseText.length);
+      
+      try {
+        const responseData = JSON.parse(responseText);
+        const cleanedResponse = JSON.parse(JSON.stringify(responseData)); // deep copy
+        delete cleanedResponse.generations?.[0]?.audio;
+        console.log('Parsed response data:', cleanedResponse);
+        
+        // Extract audio data from the response
+        let audioBase64 = null;
+        
+        if (responseData.generations && responseData.generations[0] && responseData.generations[0].audio) {
+          audioBase64 = responseData.generations[0].audio;
+          console.log('Found audio in responseData.generations[0].audio');
+        } else if (responseData.audio) {
+          audioBase64 = responseData.audio;
+          console.log('Found audio in responseData.audio');
+        } else {
+          console.error('No audio data found in response:', responseData);
+          throw new Error('No audio data found in API response');
+        }
+        
+        if (audioBase64) {
+          console.log('Audio data found, length:', audioBase64.length);
+          
+          // Validate base64 format
+          const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+          if (!base64Regex.test(audioBase64)) {
+            console.error('Invalid base64 format detected');
+            throw new Error('Invalid base64 audio data format');
+          }
+          
+          const audioUri = `data:audio/mp3;base64,${audioBase64}`;
+          await this.playAudioChunk(audioUri);
+        } else {
+          throw new Error('Audio data is empty');
+        }
+        
+      } catch (parseError) {
+        console.error('Error parsing JSON response:', parseError);
+        console.error('Response text preview:', responseText.substring(0, 200));
+        throw new Error('Failed to parse API response as JSON');
+      }
+      console.log('HTTP API audio played successfully');
+      
+    } catch (error) {
+      console.error('HTTP API error:', error);
+      throw error;
+    }
+  }
+
   private async speakWithHTTP(text: string, options: HumeTTSOptions): Promise<void> {
     try {
       console.log('Using HTTP API for TTS');
@@ -122,7 +209,6 @@ class HumeTTSService {
         
         if (audioBase64) {
           console.log('Audio data found, length:', audioBase64.length);
-          console.log('Audio data preview:', audioBase64.substring(0, 50));
           
           // Validate base64 format
           const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
@@ -352,15 +438,12 @@ class HumeTTSService {
   private async playAudioChunk(audioBase64: string): Promise<void> {
     try {
       console.log('Playing audio chunk, base64 length:', audioBase64.length);
-      console.log('Audio base64 preview:', audioBase64.substring(0, 100));
       
       // Clean the base64 string (remove any data URL prefix if present)
       let cleanBase64 = audioBase64;
       if (audioBase64.includes(',')) {
         cleanBase64 = audioBase64.split(',')[1];
       }
-      
-      console.log('Cleaned base64 length:', cleanBase64.length);
       
       // Try different audio formats - MP3 should work for Hume TTS
       const audioFormats = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg'];
@@ -369,7 +452,6 @@ class HumeTTSService {
         try {
           const audioUri = `data:${format};base64,${cleanBase64}`;
           console.log(`Trying audio format: ${format}`);
-          console.log(`Audio URI preview: ${audioUri.substring(0, 100)}...`);
           
           // Create and load the sound
           const { sound } = await Audio.Sound.createAsync(
@@ -381,11 +463,9 @@ class HumeTTSService {
 
           // Set up playback status monitoring
           sound.setOnPlaybackStatusUpdate((status: any) => {
-            const status_without_payload = status;
-            delete status_without_payload['uri'];
-            console.log('Audio playback status:', status_without_payload);
             if (status.didJustFinish) {
               console.log('Audio chunk finished playing');
+              this.isCurrentlyPlaying = false;
               sound.unloadAsync();
             }
           });
@@ -395,10 +475,6 @@ class HumeTTSService {
           return; // Success, exit the loop
         } catch (formatError) {
           console.log(`Failed with format ${format}:`, formatError);
-          // Log more details about the error
-          if (formatError instanceof Error && formatError.message) {
-            console.log(`Error message: ${formatError.message}`);
-          }
           continue; // Try next format
         }
       }
@@ -417,6 +493,16 @@ class HumeTTSService {
         );
 
         console.log('Audio sound created successfully without format specification');
+        
+        // Set up playback status monitoring
+        sound.setOnPlaybackStatusUpdate((status: any) => {
+          if (status.didJustFinish) {
+            console.log('Audio chunk finished playing');
+            this.isCurrentlyPlaying = false;
+            sound.unloadAsync();
+          }
+        });
+
         this.isCurrentlyPlaying = true;
         console.log('Audio chunk started playing');
         return;
@@ -430,7 +516,6 @@ class HumeTTSService {
       
     } catch (error) {
       console.error('Error playing audio chunk:', error);
-      console.error('Audio base64 preview:', audioBase64.substring(0, 100));
       throw error;
     }
   }
