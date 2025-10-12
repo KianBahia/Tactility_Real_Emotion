@@ -673,6 +673,7 @@ return (
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.emojiScrollContainer}
+      keyboardShouldPersistTaps="always"
     >
       <View>
         {/* First Row */}
