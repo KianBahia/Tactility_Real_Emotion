@@ -59,38 +59,35 @@ EMOTION_PRESETS = {
         "description": "enthusiastic but formal, confident projection, clear diction, positive emphasis",
         "speed": 1.02,
     },
+    
     "enthusiastic_formal_2": {
         "description": "very enthusiastic, expressive intonation and confident rhythm; polished yet dynamic delivery with vibrant projection and upbeat emphasis.",
         "speed": 1.08,
     },
     "enthusiastic_formal_3": {
-        "description": "extremely enthusiastic, passionate yet articulate tone, elevated pitch range, strong rhythm and conviction — sounds inspiring and contagious.",
+        "description": "extremely enthusiastic, passionate yet articulate tone, elevated pitch range, strong rhythm and conviction — sounds inspiring and contagious. Very motivated to get a job",
         "speed": 1.18,
     },
 
     # ------------------------
-    # Other original presets (unchanged)
     # ------------------------
-    "sad": {
-        "description": "sad, soft, low energy, slow pace, gentle downward intonation, subdued",
-        "speed": 0.85,
-    },
     "doubt": {
         "description": "hesitant, tentative, soft delivery with light pauses and rising intonation; elongated vowels and gentle upward phrasing",
         "speed": 0.92,
         "trailing_silence": 0.6,
     },
     "funny_sarcastic": {
-        "description": "dry, sarcastic timing, playful pitch inflection, slight exaggeration",
-        "speed": 1.05,
+        "description": (
+        "playful, lightly mocking tone with exaggerated intonation and slightly slower pacing; "
+        "speech sounds amused but clearly insincere — as if teasing or feigning surprise. "
+        "Example: the word 'wow' is drawn out with dry humor, not genuine admiration."
+    ),
+    "speed": 0.98,
+    "trailing_silence": 0.25,
     },
     "anxious": {
         "description": "rapid, breathy, tense, slight tremor and rising intonation, scattered pacing",
         "speed": 1.12,
-    },
-    "disgusted": {
-        "description": "cold, retracted tone, short clipped words, low pitch, aversive quality",
-        "speed": 0.9,
     },
     "shy": {
         "description": "soft, quiet, hesitant, breathy, minimal projection, downward intonation",
@@ -108,6 +105,62 @@ EMOTION_PRESETS = {
     "depressed": {
         "description": "very low energy, slow tempo, flat affect, soft volume, monotone",
         "speed": 0.78,
+    },
+    "awe": {
+        "description": (
+            "amazed"
+        ),
+        "speed": 0.88,
+        "trailing_silence": 0.4,
+    },
+
+    "shock": {
+        "description": (
+            "sudden, sharp intake of breath followed by tense, clipped delivery; "
+            "uneven pacing with short bursts of speech, reflecting disbelief or surprise. "
+            "Pitch jumps unpredictably, and tone carries urgency and astonishment. Not sharp nor angry, remarking exclamation points"
+        ),
+        "speed": 0.95,
+        "trailing_silence": 0.2,
+    },
+    "scared":{
+        "description":"slightly scared, uneasy, tense but trying to stay calm; voice trembles subtly, breath a bit shallow, cautious tone",
+        "speed":0.95,
+    },
+    "scared_2":{
+        "description":"scared, voice shaking, breathing faster, urgent tone with rising pitch and nervous hesitations; words slightly rushed",
+        "speed":1.05,
+    },
+    "scared_3":{
+        "description":"terrified, panicked, trembling voice, gasping between words, tone high-pitched and desperate; uneven rhythm, shouting to survive",
+        "speed":1.15,
+    },
+
+    "disgusted": {
+        "description": "slightly disgusted, restrained tone with mild tension in the voice; subtle annoyance, short clipped phrases, quiet exhalation at the end of sentences",
+        "speed": 1.0,
+    },
+    "disgusted_2": {
+        "description": "clearly disgusted, nasal and tense voice; sharper articulation, audible scoffing or sighing between phrases, moderate pitch variation, expressing strong disapproval",
+        "speed": 0.95,
+    },
+    "disgusted_3": {
+        "description": "intensely disgusted, harsh and repelled tone; voice thick with contempt and revulsion, audible recoil, drawn-out vowels and strong emphasis as if physically repulsed",
+        "speed": 0.9,
+    },
+    "sad": {
+        "description": "slightly sad, soft and reflective tone; mild melancholy, gentle downward intonation, calm breathing, steady rhythm, subtle emotional weight",
+        "speed": 0.95,
+    },
+
+    "sad_2": {
+        "description": "sad, emotional voice with audible weight; slower pace, longer pauses, gentle tremble in the tone, subdued emphasis, low energy conveying quiet sorrow",
+        "speed": 0.85,
+    },
+
+    "sad_3": {
+        "description": "deeply sad, grieving tone; voice breaking with emotion, trembling and low-pitched, long pauses, breathy delivery, almost whispering through tears",
+        "speed": 0.75,
     },
 }
 
@@ -139,6 +192,16 @@ EMOTION_LINES = {
         "Everything seems muted and heavy, and it's been difficult to find the energy to respond — "
         "I need a little time to process and recover."
     ),
+    "sad_2": (
+        "I'm really sorry about this; I've been feeling drained and overwhelmed by what occurred. "
+        "Everything seems muted and heavy, and it's been difficult to find the energy to respond — "
+        "I need a little time to process and recover."
+    ),
+    "sad_3": (
+        "I'm really sorry about this; I've been feeling drained and overwhelmed by what occurred. "
+        "Everything seems muted and heavy, and it's been difficult to find the energy to respond — "
+        "I need a little time to process and recover."
+    ),
     "doubt": (
         "Um... I'm not entirely sure this is correct, and I'm feeling hesitant about moving forward. "
         "Perhaps we should pause, check the details more carefully, and consider alternatives — "
@@ -166,16 +229,24 @@ EMOTION_LINES = {
     ),
     "enthusiastic_formal_3": (
         "I'm very pleased to share this opportunity with you; it represents substantial potential and merit. "
-        "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed."
+        "Please consider it carefully — I believe it aligns strongly with your skills and the objectives we discussed. I really love this job!"
     ),
     "funny_sarcastic": (
-        "How can you be so good Ahmed, I do not believe it"
+        "Wow Ahmed, you have done a lot in this project, your post is going to reflect your hard work!"
     ),
     "anxious": (
         "I'm feeling a bit on edge and worried about how this will turn out; my thoughts keep racing. "
         "What if it fails? What if I missed something important? I keep replaying scenarios and hoping for the best."
     ),
     "disgusted": (
+        "Ew, that is really off-putting — it makes my skin crawl and I want to step away. "
+        "The sensation is visceral: I recoil, pull back, and feel a strong desire to avoid it entirely."
+    ),
+    "disgusted_2": (
+        "Ew, that is really off-putting — it makes my skin crawl and I want to step away. "
+        "The sensation is visceral: I recoil, pull back, and feel a strong desire to avoid it entirely."
+    ),
+    "disgusted_3": (
         "Ew, that is really off-putting — it makes my skin crawl and I want to step away. "
         "The sensation is visceral: I recoil, pull back, and feel a strong desire to avoid it entirely."
     ),
@@ -195,6 +266,11 @@ EMOTION_LINES = {
         "Lately I can't seem to find the energy to do much; everything feels heavy and colorless. "
         "Small tasks that used to be manageable now feel overwhelming, and I'm struggling to motivate myself."
     ),
+    "awe": ("It’s the most beautiful thing I’ve ever seen — I didn’t even know something like this could exist."),
+    "shock": ("How come? London's airport is only worth 10K, this must be an error for sure! I don't know what happpened."),
+    "scared": ("Oh my god! There is a huge cockroach on the wall! I cannot belive! Please please take it out!"),
+    "scared_2": ("Oh my god! There is a huge cockroach on the wall! I cannot belive! Please please take it out!"),
+    "scared_3": ("Oh my god! There is a huge cockroach on the wall! I cannot belive! Please please take it out!"),
 }
 
 # ======================================================
