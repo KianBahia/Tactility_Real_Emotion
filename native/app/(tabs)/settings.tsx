@@ -101,28 +101,31 @@ export default function SettingsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <Text style={styles.headerEmoji}>⚙️</Text>
-              <Text style={styles.headerTitle}>Settings</Text>
-            </View>
-          </View>
+    <View style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerEmoji}>⚙️</Text>
+          <Text style={styles.headerTitle}>Settings</Text>
+        </View>
+      </View>
 
       {/* Settings List */}
-      <ScrollView 
-        style={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <View style={styles.settingsContainer}>
+        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+          <ScrollView 
+            style={styles.content}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+            alwaysBounceVertical={false}
+          >
+            <View style={styles.settingsContainer}>
           {/* Voices Section */}
           <TouchableOpacity
             style={[
@@ -404,8 +407,10 @@ export default function SettingsScreen() {
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       {/* Voice Selection Modal */}
       <Modal
@@ -499,9 +504,7 @@ export default function SettingsScreen() {
           </ScrollView>
         </View>
       </Modal>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -528,8 +531,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   settingsContainer: {
     padding: 16,
