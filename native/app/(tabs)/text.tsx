@@ -532,15 +532,13 @@ export default function TextScreen() {
                       <Text
                         key={index}
                         style={[
-                          styles.highlightedSentence,
                           {
                             color:
                               index === currentSentenceIndex
                                 ? "#000000"
                                 : Colors[colorScheme ?? "light"].text,
                           },
-                          index === currentSentenceIndex &&
-                            styles.activeSentence,
+                          index === currentSentenceIndex && styles.activeSentence,
                         ]}
                       >
                         {sentence}
@@ -573,6 +571,39 @@ export default function TextScreen() {
                   autoCorrect={true}
                   autoCapitalize="sentences"
                   spellCheck={true}
+                  onKeyPress={(e) => {
+                    const k = e.nativeEvent.key;
+                    if (k === 'Enter' || k === 'Return' || k === '\n') {
+                      // allow the newline to be applied to state first
+                      setTimeout(async () => {
+                        try {
+                          // Determine the line where the newline was just inserted.
+                          // After the newline is applied, the last element will be empty, and the line to play is the one before it.
+                          const lines = text.split('\n');
+                          let targetLine = '';
+                          if (lines.length >= 2 && lines[lines.length - 1] === '') {
+                            targetLine = lines[lines.length - 2];
+                          } else {
+                            targetLine = lines[lines.length - 1];
+                          }
+
+                          const trimmedLine = targetLine ? targetLine.trim() : '';
+                          if (!trimmedLine) return;
+
+                          // Parse segments for this line and play them all.
+                          const lineSegments = parseSegments(trimmedLine);
+                          if (lineSegments.length > 0) {
+                            await speakMultipleSegments(lineSegments);
+                          } else {
+                            // fallback: speak the whole line as neutral
+                            await speakSegment(trimmedLine, 'neutral');
+                          }
+                        } catch (err) {
+                          console.error('Error playing on Return:', err);
+                        }
+                      }, 0);
+                    }
+                  }}
                 />
               )}
             </View>
