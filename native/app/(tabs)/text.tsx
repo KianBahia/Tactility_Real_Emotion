@@ -663,60 +663,69 @@ function EmojiBar({ onEmojiPress }: EmojiBarProps) {
   const colorScheme = useColorScheme();
 
   // Split emojis into two rows
-  const row1 = emojis.slice(0, 6);
-  const row2 = emojis.slice(6);
+  const midIndex = Math.ceil(emojis.length / 2);
+  const row1 = emojis.slice(0, midIndex);
+  const row2 = emojis.slice(midIndex);
 
-  return (
-    <View style={styles.emojiContainer}>
-      {/* First Row */}
-      <View style={styles.emojiRow}>
-        {row1.map((emoji: string, idx: number) => (
-          <TouchableOpacity
-            key={idx}
-            style={[
-              styles.emojiButton,
-              {
-                backgroundColor:
-                  Colors[colorScheme ?? "light"].background === "#fff"
-                    ? "white"
-                    : "#2D2D2D",
-              },
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onEmojiPress(emoji);
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.emojiText}>{emoji}</Text>
-          </TouchableOpacity>
-        ))}
+
+return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.emojiScrollContainer}
+    >
+      <View>
+        {/* First Row */}
+        <View style={styles.emojiRow}>
+          {row1.map((emoji: string, idx: number) => (
+            <TouchableOpacity
+              key={idx}
+              style={[
+                styles.emojiButton,
+                {
+                  backgroundColor:
+                    Colors[colorScheme ?? "light"].background === "#fff"
+                      ? "white"
+                      : "#2D2D2D",
+                },
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onEmojiPress(emoji);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.emojiText}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Second Row */}
+        <View style={styles.emojiRowOffset}>
+          {row2.map((emoji: string, idx: number) => (
+            <TouchableOpacity
+              key={idx + 6}
+              style={[
+                styles.emojiButton,
+                {
+                  backgroundColor:
+                    Colors[colorScheme ?? "light"].background === "#fff"
+                      ? "white"
+                      : "#2D2D2D",
+                },
+              ]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onEmojiPress(emoji);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.emojiText}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
-      {/* Second Row - Offset */}
-      <View style={styles.emojiRowOffset}>
-        {row2.map((emoji: string, idx: number) => (
-          <TouchableOpacity
-            key={idx + 6}
-            style={[
-              styles.emojiButton,
-              {
-                backgroundColor:
-                  Colors[colorScheme ?? "light"].background === "#fff"
-                    ? "white"
-                    : "#2D2D2D",
-              },
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onEmojiPress(emoji);
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.emojiText}>{emoji}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -741,15 +750,15 @@ const styles = StyleSheet.create({
   },
   emojiRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
     alignItems: "center",
+    gap: 8, // consistent space between emojis
     marginBottom: 8,
   },
   emojiRowOffset: {
     flexDirection: "row",
-    justifyContent: "space-around",
     alignItems: "center",
-    paddingHorizontal: "10%",
+    gap: 8,
+    paddingLeft: 24, // optional indent to slightly offset the second row
   },
   emojiButton: {
     width: 56,
@@ -861,5 +870,9 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  emojiScrollContainer: {
+  flexDirection: "row",
+  paddingHorizontal: 8,
   },
 });
