@@ -186,9 +186,15 @@ export default function TextScreen() {
         // Remove emojis from the text before sending to API
         const cleanText = seg.text.replace(/[🤩🤣🥳😡😢🙂🫠🤢🫣😑🥺]/g, '').trim();
         
+        const voiceName = settings.voice?.name || 'Ava Song';
+        const isCustomVoice = settings.voice?.provider === 'CUSTOM_VOICE';
+        
         return {
           text: cleanText,
-          voice: { name: settings.voice?.name || 'Ava Song' },
+          voice: { 
+            name: voiceName,
+            provider: isCustomVoice ? 'CUSTOM_VOICE' : 'HUME_AI'
+          },
           description: preset.description,
           speed: preset.speed,
           trailing_silence: preset.trailing_silence,

@@ -14,8 +14,6 @@ export interface SpeechSettings {
   speakAsYouType: "off" | "words" | "sentences" | "lines";
   highlightSpokenText: boolean;
   delay: number;
-  phoneCallEnabled: boolean;
-  videoCallEnabled: boolean;
   humeApiKey: string;
 }
 
@@ -58,8 +56,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     speakAsYouType: "off",
     highlightSpokenText: false,
     delay: 0,
-    phoneCallEnabled: false,
-    videoCallEnabled: false,
     humeApiKey: "",
   });
 
