@@ -1,5 +1,5 @@
-import React, { createContext, ReactNode, useContext, useState, useEffect, } from "react";
-import { storage } from "@/utils/storage"; // ✅ added import
+import React, { createContext, ReactNode, useContext, useState, useEffect } from "react";
+import { storage } from "@/utils/storage";
 
 export interface Voice {
   id: string;
@@ -23,35 +23,27 @@ interface AppContextType {
   setShortcuts: (shortcuts: string[]) => void;
   addShortcut: (text: string) => void;
   deleteShortcut: (index: number) => void;
+
   history: string[];
   setHistory: (history: string[]) => void;
   addToHistory: (text: string) => void;
   clearHistory: () => void;
   deleteHistory: (index: number) => void;
+
   settings: SpeechSettings;
   updateSettings: (newSettings: Partial<SpeechSettings>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// ✅ storage key constant
+// ✅ Storage keys
 const SETTINGS_KEY = "speech_settings";
+const SHORTCUTS_KEY = "shortcuts";
+const HISTORY_KEY = "history";
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [shortcuts, setShortcuts] = useState<string[]>([
-    "Hello, how are you?",
-    "Thank you very much",
-    "I need help",
-    "Good morning",
-  ]);
-
-  const [history, setHistory] = useState<string[]>([
-    "Hello, how are you today?",
-    "Thank you for your help",
-    "I need assistance with this",
-    "Good morning everyone",
-  ]);
-
+  const [shortcuts, setShortcuts] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>([]);
   const [settings, setSettings] = useState<SpeechSettings>({
     voice: null,
     selectedVoiceId: null,
@@ -63,36 +55,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     humeApiKey: "",
   });
 
-  // ✅ Load settings (including API key) from persistent storage
+  // ✅ Load all persisted data
   useEffect(() => {
     (async () => {
       try {
-        const saved = await storage.getItem(SETTINGS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setSettings((prev) => ({ ...prev, ...parsed }));
-        }
+        const [savedSettings, savedShortcuts, savedHistory] = await Promise.all([
+          storage.getItem(SETTINGS_KEY),
+          storage.getItem(SHORTCUTS_KEY),
+          storage.getItem(HISTORY_KEY),
+        ]);
+
+        if (savedSettings) setSettings((p) => ({ ...p, ...JSON.parse(savedSettings) }));
+        if (savedShortcuts) setShortcuts(JSON.parse(savedShortcuts));
+        if (savedHistory) setHistory(JSON.parse(savedHistory));
       } catch (err) {
-        console.error("Error loading settings from storage:", err);
+        console.error("Error loading data:", err);
       }
     })();
   }, []);
 
-  // ✅ Save settings automatically when they change
+  // ✅ Auto-save on change
   useEffect(() => {
-    (async () => {
-      try {
-        await storage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      } catch (err) {
-        console.error("Error saving settings to storage:", err);
-      }
-    })();
+    storage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
 
+  useEffect(() => {
+    storage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
+  }, [shortcuts]);
+
+  useEffect(() => {
+    storage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }, [history]);
+
+  // ✅ Context operations
   const addShortcut = (text: string) => {
-    if (text && !shortcuts.includes(text)) {
-      setShortcuts([...shortcuts, text]);
-    }
+    if (text && !shortcuts.includes(text)) setShortcuts([...shortcuts, text]);
   };
 
   const deleteShortcut = (index: number) => {
@@ -101,21 +98,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addToHistory = (text: string) => {
     if (text && !history.includes(text)) {
-      setHistory([text, ...history].slice(0, 10)); // Keep last 10
+      const updated = [text, ...history].slice(0, 50);
+      setHistory(updated);
     }
   };
 
-  const clearHistory = () => {
-    setHistory([]);
-  };
-
-  const deleteHistory = (index: number) => {
-    setHistory(history.filter((_, i) => i !== index));
-  };
-
-  const updateSettings = (newSettings: Partial<SpeechSettings>) => {
+  const clearHistory = () => setHistory([]);
+  const deleteHistory = (index: number) => setHistory(history.filter((_, i) => i !== index));
+  const updateSettings = (newSettings: Partial<SpeechSettings>) =>
     setSettings((prev) => ({ ...prev, ...newSettings }));
-  };
 
   return (
     <AppContext.Provider
@@ -139,9 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 }
 
 export function useApp() {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error("useApp must be used within an AppProvider");
-  }
-  return context;
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error("useApp must be used inside AppProvider");
+  return ctx;
 }

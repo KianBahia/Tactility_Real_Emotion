@@ -13,44 +13,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { storage } from "@/utils/storage"; // ✅ added import
 
 export default function ShortcutsScreen() {
   const colorScheme = useColorScheme();
-  const { shortcuts, deleteShortcut, setShortcuts, settings } = useApp();
+  const { shortcuts, deleteShortcut, settings } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isHumeInitialized, setIsHumeInitialized] = useState(false);
-  const [localShortcuts, setLocalShortcuts] = useState<string[]>([]); // ✅ local persisted state
-
-  // Load shortcuts from storage on mount
-  useEffect(() => {
-    (async () => {
-      const saved = await storage.getItem("shortcuts");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setLocalShortcuts(parsed);
-        } catch (err) {
-          console.error("Failed to parse shortcuts from storage:", err);
-        }
-      } else {
-        // if nothing stored yet, fallback to context
-        setLocalShortcuts(shortcuts);
-      }
-    })();
-  }, []);
-
-  // Sync from context to local state when shortcuts change
-  useEffect(() => {
-    // Only sync if the context has more items than local state (indicating something was added)
-    if (shortcuts.length > localShortcuts.length) {
-      console.log("Syncing shortcuts from context to local state");
-      setLocalShortcuts(shortcuts);
-      // Also save to storage
-      storage.setItem("shortcuts", JSON.stringify(shortcuts));
-    }
-  }, [shortcuts, localShortcuts.length]);
-
 
   // Initialize Hume TTS when API key is available
   useEffect(() => {
@@ -99,40 +67,22 @@ export default function ShortcutsScreen() {
 
   const handleDeleteShortcut = (index: number) => {
     // For web, use confirm dialog; for mobile, use Alert
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm("Are you sure you want to delete this shortcut?");
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this shortcut?"
+      );
       if (confirmed) {
-        const updated = localShortcuts.filter((_, i) => i !== index);
-        setLocalShortcuts(updated);
-        
-        // Save to storage
-        storage.setItem("shortcuts", JSON.stringify(updated));
-        
-        // Update context to match local state
-        setShortcuts(updated);
+        deleteShortcut(index);
       }
     } else {
-      Alert.alert(
-        "Delete Shortcut",
-        "Are you sure you want to delete this shortcut?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: () => {
-              const updated = localShortcuts.filter((_, i) => i !== index);
-              setLocalShortcuts(updated);
-              
-              // Save to storage
-              storage.setItem("shortcuts", JSON.stringify(updated));
-              
-              // Update context to match local state
-              setShortcuts(updated);
-            },
-          },
-        ]
-      );
+      Alert.alert("Delete Shortcut", "Are you sure you want to delete this shortcut?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteShortcut(index),
+        },
+      ]);
     }
   };
 
@@ -151,7 +101,7 @@ export default function ShortcutsScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        {localShortcuts.length === 0 ? (
+        {shortcuts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               No shortcuts yet. Add from Text screen!
@@ -159,7 +109,7 @@ export default function ShortcutsScreen() {
           </View>
         ) : (
           <View style={styles.shortcutsList}>
-            {localShortcuts.map((shortcut, index) => (
+            {shortcuts.map((shortcut, index) => (
               <View
                 key={index}
                 style={[
