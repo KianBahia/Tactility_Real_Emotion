@@ -246,12 +246,14 @@ export default function TextScreen() {
   };
 
   const parseSegments = (input: string): Array<{ emotion: Emotion; text: string }> => {
+    console.log('parseSegments - input:', input);
+    
     // Create a mapping from emojis to emotions
     const emojiToEmotion: Record<string, Emotion> = {
       "😊": "enthusiastic_formal",    // enthusiasm for a job (formal)
       "😊😊": "enthusiastic_formal_2",
       "😊😊😊": "enthusiastic_formal_3",
-      "🤣": "funny_sarcastic",    // funny/sarcastic
+      "🤪": "funny_sarcastic",    // funny/sarcastic (matching emojis array)
       "🥳": "happy",    // happy
       "🥳🥳": "happy_2",    // happy
       "🥳🥳🥳": "happy_3",    // happy
@@ -261,9 +263,9 @@ export default function TextScreen() {
       "😢": "sad",      // sadly/depression
       "😢😢": "sad_2",      // sadly/depression
       "😢😢😢": "sad_3",      // sadly/depression
-      "🙂": "neutral",  // neutral
+      "👩‍🎓": "neutral",  // neutral (matching emojis array)
       "🤔": "doubt",    
-      "🫣": "shy",    // shy
+      "🙈": "shy",    // shy (matching emojis array)
       "😑": "dont_care",  // don't care
       "🤩": "admire",      // admire
       "🥺": "awe",
@@ -275,15 +277,14 @@ export default function TextScreen() {
       "🤢🤢": "disgusted_2",
       "🤢🤢🤢": "disgusted_3",
       "🫠": "anxious"
-      
     };
 
     const segments: Array<{ emotion: Emotion; text: string }> = [];
     let currentEmotion: Emotion = "neutral"; // Default emotion
     let currentText = "";
 
-    // Use a regex that properly handles emojis
-    const emojiRegex = /(🤩|🤣|🥳|😡|😢|🙂|🫠|🤢|🫣|😑|🥺)/g;
+    // Use a regex that properly handles emojis - longer sequences first to avoid partial matches
+    const emojiRegex = /(😊😊😊|😊😊|😊|🤪|🥳🥳🥳|🥳🥳|🥳|😡😡😡|😡😡|😡|😢😢😢|😢😢|😢|👩‍🎓|🤔|🙈|😑|🤩|🥺|😨|😱😱😱|😱😱|😱|🤢🤢🤢|🤢🤢|🤢|🫠)/g;
     let lastIndex = 0;
     let match;
     
@@ -311,6 +312,7 @@ export default function TextScreen() {
       // Update the current emotion based on the emoji
       if (emojiToEmotion[emoji]) {
         currentEmotion = emojiToEmotion[emoji];
+        console.log('parseSegments - matched emoji:', emoji, '-> emotion:', currentEmotion);
       }
       
       lastIndex = emojiIndex + emoji.length;
@@ -340,6 +342,7 @@ export default function TextScreen() {
       });
     }
     
+    console.log('parseSegments - final segments:', segments);
     return segments;
   };
 
@@ -371,7 +374,7 @@ export default function TextScreen() {
         const preset = EMOTION_PRESETS[seg.emotion] || EMOTION_PRESETS['neutral'];
         
         // Remove emojis from the text before sending to API
-        const cleanText = seg.text.replace(/[🤩🤣🥳😡😢🙂🫠🤢🫣😑🥺]/g, '').trim();
+        const cleanText = seg.text.replace(/[🤩🤪🥳😡😢👩‍🎓🫠🤢🙈😑🥺🤔😨😱]/g, '').trim();
         
         const voiceName = settings.voice?.name || 'Ava Song';
         const isCustomVoice = settings.voice?.provider === 'CUSTOM_VOICE';
@@ -404,7 +407,7 @@ export default function TextScreen() {
       humeTTS.setApiKey(settings.humeApiKey);
 
       // Remove emojis from the text before sending to API
-      const cleanText = text.replace(/[🤩🤣🥳😡😢🙂🫠🤢🫣😑🥺]/g, '').trim();
+      const cleanText = text.replace(/[🤩🤪🥳😡😢👩‍🎓🫠🤢🙈😑🥺🤔😨😱]/g, '').trim();
       
       // Split text by newlines to get sentences
       const sentences = cleanText.split("\n").filter((s) => s.trim().length > 0);
