@@ -70,6 +70,7 @@ export default function TextScreen() {
   const colorScheme = useColorScheme();
   const { addToHistory, addShortcut, settings } = useApp();
   const [text, setText] = useState("");
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(-1);
   const isSpeakingRef = useRef(false);
@@ -474,8 +475,16 @@ export default function TextScreen() {
   };
 
   const handleEmojiPress = (emoji: string) => {
-    setText((prev) => prev + emoji);
+    setText((prev) => {
+      const before = prev.slice(0, selection.start);
+      const after = prev.slice(selection.end);
+      const newText = before + emoji + after;
+      const newPos = selection.start + emoji.length;
+      setSelection({ start: newPos, end: newPos });
+      return newText;
+    });
   };
+
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -573,6 +582,8 @@ export default function TextScreen() {
                   autoCorrect={true}
                   autoCapitalize="sentences"
                   spellCheck={true}
+                  selection={selection}
+                  onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
                 />
               )}
             </View>
