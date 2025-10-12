@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useApp } from '@/contexts/AppContext';
-import { humeTTS } from '@/services/HumeTTS';
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Colors } from "@/constants/theme";
+import { useApp } from "@/contexts/AppContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { humeTTS } from "@/services/HumeTTS";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
-  const { history, settings, clearHistory } = useApp();
+  const { history, settings, clearHistory, deleteHistory } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isHumeInitialized, setIsHumeInitialized] = useState(false);
 
@@ -24,7 +31,10 @@ export default function HistoryScreen() {
 
   const handleSpeak = async (text: string, index: number) => {
     if (!isHumeInitialized) {
-      Alert.alert('API Key Required', 'Please set your Hume API key in settings to use text-to-speech.');
+      Alert.alert(
+        "API Key Required",
+        "Please set your Hume API key in settings to use text-to-speech."
+      );
       return;
     }
 
@@ -32,11 +42,11 @@ export default function HistoryScreen() {
       await humeTTS.speak(text, {
         rate: settings.rate,
         pitch: settings.pitch,
-        voice: settings.voice?.name || 'Ava Song',
-        isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
+        voice: settings.voice?.name || "Ava Song",
+        isCustomVoice: settings.voice?.provider === "CUSTOM_VOICE",
       });
       setPlayingIndex(index);
-      
+
       // Monitor speech status
       const checkStatus = setInterval(() => {
         if (!humeTTS.isSpeaking()) {
@@ -45,8 +55,11 @@ export default function HistoryScreen() {
         }
       }, 100);
     } catch (error) {
-      console.error('Speech error:', error);
-      Alert.alert('Speech Error', 'Failed to speak text. Please check your API key and try again.');
+      console.error("Speech error:", error);
+      Alert.alert(
+        "Speech Error",
+        "Failed to speak text. Please check your API key and try again."
+      );
       setPlayingIndex(null);
     }
   };
@@ -61,6 +74,21 @@ export default function HistoryScreen() {
           text: "Clear All",
           style: "destructive",
           onPress: () => clearHistory(),
+        },
+      ]
+    );
+  };
+
+  const handleDeleteHistory = (index: number) => {
+    Alert.alert(
+      "Delete History Item",
+      "Are you sure you want to delete this item?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteHistory(index),
         },
       ]
     );
@@ -132,16 +160,24 @@ export default function HistoryScreen() {
                     {item}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.speakButton}
-                  onPress={() => handleSpeak(item, index)}
-                >
-                  <IconSymbol
-                    name="speaker.wave.2.fill"
-                    size={16}
-                    color="white"
-                  />
-                </TouchableOpacity>
+                <View style={styles.historyActions}>
+                  <TouchableOpacity
+                    style={styles.speakButton}
+                    onPress={() => handleSpeak(item, index)}
+                  >
+                    <IconSymbol
+                      name="speaker.wave.2.fill"
+                      size={16}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.speakButton, styles.deleteButton]}
+                    onPress={() => handleDeleteHistory(index)}
+                  >
+                    <IconSymbol name="trash.fill" size={16} color="white" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -158,7 +194,14 @@ export default function HistoryScreen() {
           },
         ]}
       >
-        <Text style={styles.footerText}>Recent texts you've spoken</Text>
+        <Text
+          style={[
+            styles.footerText,
+            { color: Colors[colorScheme ?? "light"].icon },
+          ]}
+        >
+          Recent texts you've spoken
+        </Text>
       </View>
     </View>
   );
@@ -218,20 +261,21 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 2,
     borderColor: "transparent",
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
   },
   playingItem: {
     borderColor: "#8B5CF6",
-    backgroundColor: "#F3E8FF",
   },
   historyTextContainer: {
     flex: 1,
+    marginBottom: 12,
   },
   historyText: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  historyActions: {
+    flexDirection: "row",
+    gap: 8,
   },
   speakButton: {
     width: 40,
@@ -240,6 +284,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#8B5CF6",
     justifyContent: "center",
     alignItems: "center",
+  },
+  deleteButton: {
+    backgroundColor: "#EF4444",
   },
   footer: {
     height: 64,

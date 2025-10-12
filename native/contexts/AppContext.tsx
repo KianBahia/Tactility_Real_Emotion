@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, ReactNode, useContext, useState } from "react";
 
 export interface Voice {
   id: string;
   name: string;
-  provider: 'HUME_AI' | 'CUSTOM_VOICE';
+  provider: "HUME_AI" | "CUSTOM_VOICE";
 }
 
 export interface SpeechSettings {
@@ -28,6 +28,7 @@ interface AppContextType {
   setHistory: (history: string[]) => void;
   addToHistory: (text: string) => void;
   clearHistory: () => void;
+  deleteHistory: (index: number) => void;
   settings: SpeechSettings;
   updateSettings: (newSettings: Partial<SpeechSettings>) => void;
 }
@@ -59,7 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     delay: 0,
     phoneCallEnabled: false,
     videoCallEnabled: false,
-    humeApiKey: '',
+    humeApiKey: "",
   });
 
   const addShortcut = (text: string) => {
@@ -82,6 +83,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setHistory([]);
   };
 
+  const deleteHistory = (index: number) => {
+    setHistory(history.filter((_, i) => i !== index));
+  };
+
   const updateSettings = (newSettings: Partial<SpeechSettings>) => {
     setSettings((prev) => ({ ...prev, ...newSettings }));
   };
@@ -97,6 +102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setHistory,
         addToHistory,
         clearHistory,
+        deleteHistory,
         settings,
         updateSettings,
       }}
