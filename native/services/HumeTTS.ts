@@ -102,7 +102,9 @@ class HumeTTSService {
       
       try {
         const responseData = JSON.parse(responseText);
-        console.log('Parsed response data:', responseData);
+        const cleanedResponse = JSON.parse(JSON.stringify(responseData)); // deep copy
+        delete cleanedResponse.generations?.[0]?.audio;
+        console.log('Parsed response data:', cleanedResponse);
         
         // Extract audio data from the response
         let audioBase64 = null;
@@ -379,7 +381,9 @@ class HumeTTSService {
 
           // Set up playback status monitoring
           sound.setOnPlaybackStatusUpdate((status: any) => {
-            console.log('Audio playback status:', status);
+            const status_without_payload = status;
+            delete status_without_payload['uri'];
+            console.log('Audio playback status:', status_without_payload);
             if (status.didJustFinish) {
               console.log('Audio chunk finished playing');
               sound.unloadAsync();
