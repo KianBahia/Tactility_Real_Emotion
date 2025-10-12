@@ -12,12 +12,38 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { storage } from "@/utils/storage"; // ✅ added import
 
 export default function ShortcutsScreen() {
   const colorScheme = useColorScheme();
   const { shortcuts, deleteShortcut, settings } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isHumeInitialized, setIsHumeInitialized] = useState(false);
+  const [localShortcuts, setLocalShortcuts] = useState<string[]>([]); // ✅ local persisted state
+
+  // Load shortcuts from storage on mount
+  useEffect(() => {
+    (async () => {
+      const saved = await storage.getItem("shortcuts");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setLocalShortcuts(parsed);
+        } catch (err) {
+          console.error("Failed to parse shortcuts from storage:", err);
+        }
+      } else {
+        // if nothing stored yet, fallback to context
+        setLocalShortcuts(shortcuts);
+      }
+    })();
+  }, []);
+
+  // Save shortcuts to storage whenever they change in context
+  useEffect(() => {
+    storage.setItem("shortcuts", JSON.stringify(shortcuts));
+    setLocalShortcuts(shortcuts);
+  }, [shortcuts]);
 
   // Initialize Hume TTS when API key is available
   useEffect(() => {
@@ -73,7 +99,13 @@ export default function ShortcutsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => deleteShortcut(index),
+          onPress: async () => {
+            deleteShortcut(index);
+            // remove from local storage immediately
+            const updated = localShortcuts.filter((_, i) => i !== index);
+            setLocalShortcuts(updated);
+            await storage.setItem("shortcuts", JSON.stringify(updated));
+          },
         },
       ]
     );
@@ -94,7 +126,7 @@ export default function ShortcutsScreen() {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        {shortcuts.length === 0 ? (
+        {localShortcuts.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               No shortcuts yet. Add from Text screen!
@@ -102,7 +134,7 @@ export default function ShortcutsScreen() {
           </View>
         ) : (
           <View style={styles.shortcutsList}>
-            {shortcuts.map((shortcut, index) => (
+            {localShortcuts.map((shortcut, index) => (
               <View
                 key={index}
                 style={[
