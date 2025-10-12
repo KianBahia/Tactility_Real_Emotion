@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -17,321 +17,292 @@ import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
 import { humeTTS } from "@/services/HumeTTS";
+import * as Speech from "expo-speech";
+
+// ---- Emotion mapping (real emojis only)
+type Emotion =
+  | "neutral" | "happy" | "sad" | "angry" | "doubt"
+  | "enthusiastic_formal" | "funny_sarcastic" | "anxious"
+  | "disgusted" | "shy" | "dont_care" | "admire" | "depressed";
+
+const EMOJI_TO_EMOTION: Record<string, Emotion> = {
+  "🤩": "happy", "🤣": "happy", "🥳": "happy",
+  "😡": "angry",
+  "😢": "sad", "🤢": "sad",
+  "🙂": "neutral", "😑": "neutral",
+  "🫠": "doubt", "🫣": "doubt", "🥺": "doubt",
+};
+
+const PRESETS: Record<Emotion, { speed: number; description: string; trailing_silence?: number }> = {
+  neutral: { speed: 1.0, description: "Calm, balanced, neutral delivery." },
+  happy: { speed: 1.05, description: "Warm, upbeat, bright tone.", trailing_silence: 0.06 },
+  sad: { speed: 0.97, description: "Soft, slow, melancholic timbre.", trailing_silence: 0.06 },
+  angry: { speed: 1.03, description: "Intense, clipped, energetic.", trailing_silence: 0.03 },
+  doubt: { speed: 0.99, description: "Hesitant, cautious tone.", trailing_silence: 0.04 },
+  enthusiastic_formal: { speed: 1.05, description: "Enthusiastic but formal." },
+  funny_sarcastic: { speed: 1.02, description: "Light, witty, sarcastic undertone." },
+  anxious: { speed: 1.0, description: "Tense, slightly breathy." },
+  disgusted: { speed: 1.0, description: "Repulsed tone." },
+  shy: { speed: 0.98, description: "Soft and reserved." },
+  dont_care: { speed: 1.0, description: "Flat, low involvement." },
+  admire: { speed: 1.02, description: "Warm awe and appreciation." },
+  depressed: { speed: 0.95, description: "Low energy, heavy tone." },
+};
+
+const EMOJI_RE = /[\p{Emoji_Presentation}\p{Emoji}\uFE0F]+/gu;
 
 export default function TextScreen() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme as keyof typeof Colors] || Colors.light;
   const { addToHistory, addShortcut, settings } = useApp();
+
   const [text, setText] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(-1);
+  const [selection, setSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+
+  // Refs to orchestrate flow
+  const isHumeReadyRef = useRef(false);
   const isSpeakingRef = useRef(false);
+  const lastReadLineIndexRef = useRef(-1); // the last line index we have spoken
+  const currentEmotionRef = useRef<Emotion>("neutral");
 
-  type Emotion = 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
-
-  // Presets provided by the user
-  const MOTION_PRESETS: Record<Emotion, { description: string; speed: number; trailing_silence?: number }> = {
-    neutral: {
-      description:
-        'Neutral voice with smooth prosody. The speaker sounds calm, balanced, and sonically neutral. Use this preset when you want a simple, clear read without emotional color.',
-      speed: 1.0,
-    },
-    happy: {
-      description:
-        'A warm, upbeat voice conveying happiness: bright tone, slightly faster tempo, and positive intonation. Use for cheerful messages and friendly prompts.',
-      speed: 1.05,
-      trailing_silence: 0.06,
-    },
-    sad: {
-      description:
-        'A soft, lower-volume voice with slower tempo and a melancholic timbre. Use subtle breathiness and elongated vowels to convey sadness.',
-      speed: 0.97,
-      trailing_silence: 0.06,
-    },
-    angry: {
-      description:
-        'An intense, clipped delivery with higher energy and sharper consonants. Higher pitch variability and slightly faster speed to convey frustration or anger.',
-      speed: 1.03,
-      trailing_silence: 0.03,
-    },
-    doubt: {
-      description:
-        'A questioning, cautious tone with small hesitations and a tentative upward inflection at the end of phrases. Use slight pauses between clauses and a subtle breathy quality.',
-      speed: 0.99,
-      trailing_silence: 0.04,
-    },
-  };
-
-  const parseSegments = (input: string): Array<{ emotion: Emotion; text: string }> => {
-    const regex = /\[(neutral|happy|sad|angry|doubt)\]/g;
-    const parts: Array<{ emotion: Emotion; text: string }> = [];
-    let lastIndex = 0;
-    let currentEmotion: Emotion = 'neutral';
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(input)) !== null) {
-      const idx = match.index;
-      const before = input.slice(lastIndex, idx);
-      if (before.length > 0) parts.push({ emotion: currentEmotion, text: before });
-      currentEmotion = match[1] as Emotion;
-      lastIndex = regex.lastIndex;
+  useEffect(() => {
+    if (settings.humeApiKey) {
+      humeTTS.setApiKey(settings.humeApiKey);
+      isHumeReadyRef.current = true;
+    } else {
+      isHumeReadyRef.current = false;
     }
-    const rest = input.slice(lastIndex);
-    if (rest.length > 0) parts.push({ emotion: currentEmotion, text: rest });
-    return parts.map((p) => ({ emotion: p.emotion, text: p.text.trim() })).filter((p) => p.text.length > 0);
+  }, [settings.humeApiKey]);
+
+  // ---------- helpers
+  const splitLines = (t: string) => t.split(/\r?\n/);
+
+  const detectEmotionFromLineEnd = (line: string): Emotion => {
+    const m = line.match(/([\p{Emoji_Presentation}\p{Emoji}\uFE0F]+)\s*$/u);
+    if (!m) return currentEmotionRef.current;
+    const emojiCluster = m[1];
+    const first = [...emojiCluster][0] || "";
+    return EMOJI_TO_EMOTION[first] || currentEmotionRef.current;
   };
 
-  const insertTokenAtCursor = (tokenKey: string) => {
-    const token = `[${tokenKey}]`;
-    const start = selection.start ?? text.length;
-    const end = selection.end ?? text.length;
-    const newText = text.slice(0, start) + token + text.slice(end);
-    setText(newText);
-    const pos = start + token.length;
-    setTimeout(() => setSelection({ start: pos, end: pos }), 0);
-  };
+  const stripTrailingEmojis = (line: string) => line.replace(/[\p{Emoji_Presentation}\p{Emoji}\uFE0F]+\s*$/u, "").trim();
 
-
-  const handlePlay = async () => {
-    if (!text) return;
-
-    addToHistory(text);
-
-    // Check if Hume TTS is initialized
-    if (!settings.humeApiKey) {
-      Alert.alert('API Key Required', 'Please set your Hume API key in settings to use text-to-speech.');
-      return;
-    }
-
-    const segments = parseSegments(text);
-    for (const seg of segments) {
-      await speakSegment(seg.text, seg.emotion);
-      // wait until playback completed
+  const speakChunk = async (chunk: string, emotion: Emotion) => {
+    if (!chunk.trim()) return;
+    const preset = PRESETS[emotion] || PRESETS.neutral;
+    try {
+      await humeTTS.speak(chunk, {
+        voice: settings.voice?.name || "Ava Song",
+        rate: preset.speed,
+        pitch: settings.pitch,
+        isCustomVoice: settings.voice?.provider === "CUSTOM_VOICE",
+        emotion,
+        description: preset.description,
+        trailing_silence: preset.trailing_silence,
+      });
       while (humeTTS.isSpeaking()) {
         // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 120));
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    } catch {
+      // fallback keeps UX flowing
+      Speech.speak(chunk);
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, Math.max(450, chunk.length * 50)));
+    }
+  };
+
+  const speakLine = async (rawLine: string) => {
+    if (!isHumeReadyRef.current) {
+      Alert.alert("API Key Required", "Please set your Hume API key in settings to use text-to-speech.");
+      return;
+    }
+    const emotion = detectEmotionFromLineEnd(rawLine);
+    currentEmotionRef.current = emotion; // set emotion for this & following lines unless changed
+    const lineToSpeak = stripTrailingEmojis(rawLine);
+    if (!lineToSpeak) return;
+
+    addToHistory(lineToSpeak);
+    isSpeakingRef.current = true;
+    setIsPlaying(true);
+    await speakChunk(lineToSpeak, emotion);
+    isSpeakingRef.current = false;
+    setIsPlaying(false);
+  };
+
+  // ---------- auto speak on newline: speak the last completed non-empty line
+  const onChangeText = (value: string) => {
+    const wasTrailingNewline = /\n$/.test(value);
+    setText(value);
+
+    if (wasTrailingNewline && !isSpeakingRef.current && isHumeReadyRef.current) {
+      // determine the last completed line index
+      const lines = splitLines(value);
+      // if text ends with newline, last element from split will be "", so last completed is length-2
+      let idx = lines.length - 2;
+      while (idx >= 0 && lines[idx].trim() === "") idx--;
+
+      if (idx >= 0) {
+        const lineToRead = lines[idx];
+        // advance our pointer BEFORE speaking so play doesn't re-read
+        lastReadLineIndexRef.current = idx;
+
+        // keep caret at end (prevents jumpiness)
+        requestAnimationFrame(() => {
+          const pos = value.length;
+          setSelection({ start: pos, end: pos });
+        });
+
+        // speak only that line
+        (async () => {
+          await speakLine(lineToRead);
+        })();
       }
     }
-  }
+  };
 
-  const speakSegment = async (text: string, emotion: Emotion) => {
-    const preset = MOTION_PRESETS[emotion] || MOTION_PRESETS['neutral'];
-    try {
-      // Set API key for Hume TTS
-      humeTTS.setApiKey(settings.humeApiKey);
+  const onSelectionChange = (e: any) => {
+    const sel = e.nativeEvent.selection || { start: text.length, end: text.length };
+    setSelection(sel);
+  };
 
-      // Split text by newlines to get sentences
-      const sentences = text.split("\n").filter((s) => s.trim().length > 0);
+  // ---------- Play button: speak remaining lines from lastReadLineIndex+1
+  const handlePlayAll = async () => {
+    if (!isHumeReadyRef.current || isSpeakingRef.current) return;
 
-      if (!settings.highlightSpokenText || sentences.length === 0) {
-        // If highlighting is off or no sentences, just speak the whole text
-        setIsPlaying(true);
-        await humeTTS.speak(text, {
-          voice: settings.voice?.name || 'Ava Song',
-          emotion: emotion,
-          rate: preset.speed,
-          pitch: settings.pitch,
-          isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
-          description: preset.description,
-          trailing_silence: preset.trailing_silence,
-        });
-        setIsPlaying(false);
-        setCurrentSentenceIndex(-1);
-        return;
+    const lines = splitLines(text);
+    let start = lastReadLineIndexRef.current + 1;
+
+    // if nothing left, start over from 0
+    let anySpoken = false;
+    for (let i = start; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) {
+        // skip blanks but still move the pointer past them
+        lastReadLineIndexRef.current = i;
+        continue;
       }
+      await speakLine(lines[i]); // pass raw (with possible emoji)
+      lastReadLineIndexRef.current = i;
+      anySpoken = true;
+    }
 
-      // Speak each sentence with highlighting
-      setIsPlaying(true);
-      isSpeakingRef.current = true;
-
-      for (let i = 0; i < sentences.length; i++) {
-        if (!isSpeakingRef.current) break;
-
-        setCurrentSentenceIndex(i);
-        await humeTTS.speak(sentences[i], {
-          voice: settings.voice?.name || 'Ava Song',
-          rate: settings.rate,
-          pitch: settings.pitch,
-          isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
-        });
+    if (!anySpoken) {
+      // restart from the top
+      lastReadLineIndexRef.current = -1;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) {
+          lastReadLineIndexRef.current = i;
+          continue;
+        }
+        await speakLine(lines[i]);
+        lastReadLineIndexRef.current = i;
       }
-
-      isSpeakingRef.current = false;
-      setIsPlaying(false);
-      setCurrentSentenceIndex(-1);
-    } catch (error) {
-      console.error('Error with Hume TTS:', error);
-      Alert.alert('TTS Error', 'Failed to speak text. Please check your API key and try again.');
-      setIsPlaying(false);
-      setCurrentSentenceIndex(-1);
     }
   };
 
   const handlePause = () => {
-    humeTTS.stop();
-    isSpeakingRef.current = false;
-    setIsPlaying(false);
-    setCurrentSentenceIndex(-1);
-  };
-
-  const handleAddShortcut = () => {
-    if (text) {
-      addShortcut(text);
-      Alert.alert("Shortcut Added", "Text added to shortcuts!");
+    try {
+      humeTTS.stop();
+    } finally {
+      isSpeakingRef.current = false;
+      setIsPlaying(false);
+      // keep lastReadLineIndexRef so Play resumes correctly
     }
   };
 
+  const handleAddShortcut = () => {
+    if (!text) return;
+    addShortcut(text);
+    Alert.alert("Shortcut Added", "Text added to shortcuts!");
+  };
+
   const handleEmojiPress = (emoji: string) => {
-    setText((prev) => prev + emoji);
+    const next = text + (text.endsWith(" ") || text.endsWith("\n") ? "" : " ") + emoji + " ";
+    setText(next);
+    requestAnimationFrame(() => {
+      const pos = next.length;
+      setSelection({ start: pos, end: pos });
+    });
+    // Note: emotion is picked up when pressing Play or when you end a line with Enter
   };
 
-  const dismissKeyboard = () => {
-    Keyboard.dismiss();
-  };
-
-  const handleClearText = () => {
+  const handleClear = () => {
     setText("");
-    dismissKeyboard();
+    lastReadLineIndexRef.current = -1;
+    currentEmotionRef.current = "neutral";
+    Keyboard.dismiss();
+    setSelection({ start: 0, end: 0 });
   };
+
+  const displayLines = useMemo(() => splitLines(text), [text]);
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        { backgroundColor: Colors[colorScheme ?? "light"].background },
-      ]}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
-          {/* Header */}
           <View style={styles.header} />
-
-          {/* Emoji Bar */}
-          <View
-            style={[
-              styles.emojiBar,
-              {
-                backgroundColor: Colors[colorScheme ?? "light"].background,
-                borderBottomColor: Colors[colorScheme ?? "light"].icon,
-              },
-            ]}
-          >
+          <View style={[styles.emojiBar, { backgroundColor: colors.background, borderBottomColor: colors.icon }]}>
             <EmojiBar onEmojiPress={handleEmojiPress} />
           </View>
 
-          {/* Scrollable Content */}
           <ScrollView
             style={styles.scrollContainer}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Text Area */}
             <View style={styles.textArea}>
-              {settings.highlightSpokenText &&
-              isPlaying &&
-              currentSentenceIndex >= 0 ? (
-                <View style={styles.highlightContainer}>
-                  <ScrollView>
-                    {text.split("\n").map((sentence, index) => (
-                      <Text
-                        key={index}
-                        style={[
-                          styles.highlightedSentence,
-                          {
-                            color:
-                              index === currentSentenceIndex
-                                ? "#000000"
-                                : Colors[colorScheme ?? "light"].text,
-                          },
-                          index === currentSentenceIndex &&
-                            styles.activeSentence,
-                        ]}
-                      >
-                        {sentence}
-                        {index < text.split("\n").length - 1 && "\n"}
-                      </Text>
-                    ))}
-                  </ScrollView>
-                  <TouchableOpacity
-                    style={styles.editOverlay}
-                    onPress={() => {
-                      handlePause();
-                    }}
-                  >
-                    <Text style={styles.editOverlayText}>Tap to edit</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TextInput
-                  value={text}
-                  onChangeText={setText}
-                  placeholder="Start typing..."
-                  placeholderTextColor={Colors[colorScheme ?? "light"].icon}
-                  style={[
-                    styles.textInput,
-                    { color: Colors[colorScheme ?? "light"].text },
-                  ]}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus={false}
-                />
-              )}
+              <TextInput
+                value={text}
+                onChangeText={onChangeText}
+                selection={selection}
+                onSelectionChange={onSelectionChange}
+                placeholder="Type lines. Press Enter to speak that line. Add emojis at the end to set tone."
+                placeholderTextColor={colors.icon}
+                style={[styles.textInput, { color: colors.text }]}
+                multiline
+                textAlignVertical="top"
+                autoCorrect
+                autoCapitalize="sentences"
+              />
             </View>
           </ScrollView>
 
-          {/* Controls */}
-          <View
-            style={[
-              styles.controls,
-              {
-                backgroundColor: Colors[colorScheme ?? "light"].background,
-                borderTopColor: Colors[colorScheme ?? "light"].icon,
-              },
-            ]}
-          >
-            {/* Left side - empty for keyboard dismissal */}
+          <View style={[styles.controls, { backgroundColor: colors.background, borderTopColor: colors.icon }]}>
             <View style={styles.controlsLeft} />
-
-            {/* Center - main control buttons */}
             <View style={styles.controlsCenter}>
               <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  (!text || isPlaying) && styles.disabledButton,
-                ]}
-                onPress={handlePlay}
+                style={[styles.controlButton, (!text || isPlaying) && styles.disabledButton]}
+                onPress={handlePlayAll}
                 disabled={!text || isPlaying}
               >
                 <IconSymbol name="play.fill" size={20} color="white" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  !isPlaying && styles.disabledButton,
-                ]}
+                style={[styles.controlButton, !isPlaying && styles.disabledButton]}
                 onPress={handlePause}
                 disabled={!isPlaying}
               >
                 <IconSymbol name="pause.fill" size={20} color="white" />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  styles.addButton,
-                  !text && styles.disabledButton,
-                ]}
+                style={[styles.controlButton, styles.addButton, !text && styles.disabledButton]}
                 onPress={handleAddShortcut}
                 disabled={!text}
               >
                 <IconSymbol name="plus" size={20} color="white" />
               </TouchableOpacity>
             </View>
-
-            {/* Right side - Clear button */}
             <View style={styles.controlsRight}>
               <TouchableOpacity
                 style={[styles.clearButton, !text && styles.disabledButton]}
-                onPress={handleClearText}
+                onPress={handleClear}
                 disabled={!text}
               >
                 <Text style={styles.clearButtonText}>Clear</Text>
@@ -344,75 +315,33 @@ export default function TextScreen() {
   );
 }
 
-// Emoji Bar Component
-interface EmojiBarProps {
-  onEmojiPress: (emoji: string) => void;
-}
-
+// ---- Emoji bar (unchanged visual)
+interface EmojiBarProps { onEmojiPress: (emoji: string) => void; }
 function EmojiBar({ onEmojiPress }: EmojiBarProps) {
   const colorScheme = useColorScheme();
-  const emojis = [
-    "🤩", // enthusiasm for a job (formal)
-    "🤣", // funny/sarcastic
-    "🥳", // happy
-    "😡", // angry
-    "😢", // sadly/depression
-    "🙂", // neutral
-    "🫠", // anxious
-    "🤢", // awful
-    "🫣", // shy
-    "😑", // don't care
-    "🥺", // admire
-  ];
-
-  // Split emojis into two rows
-  const row1 = emojis.slice(0, 6);
-  const row2 = emojis.slice(6);
-
+  const colors = Colors[colorScheme as keyof typeof Colors] || Colors.light;
+  const emojis = ["🤩", "🤣", "🥳", "😡", "😢", "🤢", "🙂", "😑", "🫠", "🫣", "🥺"];
+  const row1 = emojis.slice(0, 6), row2 = emojis.slice(6);
   return (
     <View style={styles.emojiContainer}>
-      {/* First Row */}
       <View style={styles.emojiRow}>
         {row1.map((emoji, idx) => (
           <TouchableOpacity
             key={idx}
-            style={[
-              styles.emojiButton,
-              {
-                backgroundColor:
-                  Colors[colorScheme ?? "light"].background === "#fff"
-                    ? "white"
-                    : "#2D2D2D",
-              },
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onEmojiPress(emoji);
-            }}
+            style={[styles.emojiButton, { backgroundColor: colors.background === "#fff" ? "white" : "#2D2D2D" }]}
+            onPress={(e: any) => { e.stopPropagation(); onEmojiPress(emoji); }}
             activeOpacity={0.7}
           >
             <Text style={styles.emojiText}>{emoji}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      {/* Second Row - Offset */}
       <View style={styles.emojiRowOffset}>
         {row2.map((emoji, idx) => (
           <TouchableOpacity
             key={idx + 6}
-            style={[
-              styles.emojiButton,
-              {
-                backgroundColor:
-                  Colors[colorScheme ?? "light"].background === "#fff"
-                    ? "white"
-                    : "#2D2D2D",
-              },
-            ]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onEmojiPress(emoji);
-            }}
+            style={[styles.emojiButton, { backgroundColor: colors.background === "#fff" ? "white" : "#2D2D2D" }]}
+            onPress={(e: any) => { e.stopPropagation(); onEmojiPress(emoji); }}
             activeOpacity={0.7}
           >
             <Text style={styles.emojiText}>{emoji}</Text>
@@ -423,146 +352,33 @@ function EmojiBar({ onEmojiPress }: EmojiBarProps) {
   );
 }
 
+// ---- styles (same look as before)
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    height: 80,
-    backgroundColor: "#3B82F6", // blue-500
-  },
-  emojiBar: {
-    height: 130,
-    borderBottomWidth: 1,
-    paddingBottom: 12,
-  },
-  emojiContainer: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 4,
-    paddingTop: 8,
-  },
-  emojiRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  emojiRowOffset: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingHorizontal: "10%",
-  },
+  container: { flex: 1 },
+  header: { height: 80, backgroundColor: "#3B82F6" },
+  emojiBar: { height: 130, borderBottomWidth: 1, paddingBottom: 12 },
+  emojiContainer: { flex: 1, justifyContent: "center", paddingHorizontal: 4, paddingTop: 8 },
+  emojiRow: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", marginBottom: 8 },
+  emojiRowOffset: { flexDirection: "row", justifyContent: "space-around", alignItems: "center", paddingHorizontal: "10%" },
   emojiButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    width: 56, height: 56, borderRadius: 28, justifyContent: "center", alignItems: "center",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2,
   },
-  emojiText: {
-    fontSize: 28,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  textArea: {
-    flex: 1,
-    padding: 16,
-    minHeight: 200,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    textAlignVertical: "top",
-  },
-  highlightedText: {
-    backgroundColor: "#FEF3C7",
-  },
-  highlightContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  highlightedSentence: {
-    fontSize: 16,
-    lineHeight: 24,
-    paddingVertical: 4,
-  },
-  activeSentence: {
-    backgroundColor: "#FEF3C7",
-    fontWeight: "600",
-  },
-  editOverlay: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  editOverlayText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  controls: {
-    height: 56,
-    borderTopWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  controlsLeft: {
-    flex: 1,
-  },
-  controlsCenter: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  controlsRight: {
-    flex: 1,
-    alignItems: "flex-end",
-  },
-  controlButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#3B82F6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addButton: {
-    backgroundColor: "#10B981",
-  },
-  disabledButton: {
-    backgroundColor: "#D1D5DB",
-  },
+  emojiText: { fontSize: 28 },
+  scrollContainer: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
+  textArea: { flex: 1, padding: 16, minHeight: 200 },
+  textInput: { flex: 1, fontSize: 16, lineHeight: 24, textAlignVertical: "top" },
+  controls: { height: 56, borderTopWidth: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 16 },
+  controlsLeft: { flex: 1 },
+  controlsCenter: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 12 },
+  controlsRight: { flex: 1, alignItems: "flex-end" },
+  controlButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#3B82F6", justifyContent: "center", alignItems: "center" },
+  addButton: { backgroundColor: "#10B981" },
+  disabledButton: { backgroundColor: "#D1D5DB" },
   clearButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    backgroundColor: "#EF4444",
-    justifyContent: "center",
-    alignItems: "center",
-    minWidth: 80,
-    minHeight: 40,
+    paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, backgroundColor: "#EF4444",
+    justifyContent: "center", alignItems: "center", minWidth: 80, minHeight: 40,
   },
-  clearButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  clearButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
 });
