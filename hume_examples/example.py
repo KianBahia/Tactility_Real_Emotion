@@ -6,7 +6,8 @@ from hume import AsyncHumeClient
 from hume.tts import PostedUtterance, PostedUtteranceVoiceWithName
 
 
-VOICE_NAME = "Shuhan2"
+#VOICE_NAME = "Shuhan2"
+VOICE_NAME = "Test Custom Voice"
 OUT_DIR = Path("out_tts")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -239,6 +240,48 @@ async def synthesize_one(client: AsyncHumeClient, text: str, emotion: str, ext: 
     return out_path
 
 
+async def synthesize_multi(client: AsyncHumeClient, segments: list[dict], ext: str = "mp3"):
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = OUT_DIR / f"multi.{ext}"
+
+    utterances = []
+    for segment in segments:
+        preset = EMOTION_PRESETS[segment["emotion"]]
+        utterance_kwargs = {
+            "text": segment["text"],
+            "voice": PostedUtteranceVoiceWithName(name=VOICE_NAME),
+            "description": preset["description"],
+            "speed": preset["speed"],
+        }
+        if "trailing_silence" in segment:
+            utterance_kwargs["trailing_silence"] = segment["trailing_silence"]
+        utterance = PostedUtterance(**utterance_kwargs)
+        utterances.append(utterance)
+        print(f"🎙️ Generating '{segment['emotion']}' using voice '{VOICE_NAME}'...")
+    print(utterances)
+
+    stream = client.tts.synthesize_json_streaming(
+        utterances=utterances,
+        strip_headers=True,
+        version="1",
+    )
+
+    written = 0
+    with open(out_path, "wb") as f:
+        async for chunk in stream:
+            audio_b64 = getattr(chunk, "audio", None)
+            if audio_b64:
+                data = base64.b64decode(audio_b64)
+                f.write(data)
+                written += len(data)
+
+    if written > 0:
+        print(f"✅ Audio saved: {out_path}")
+    else:
+        print(f"⚠️ No audio written. Check voice name or API key.")
+
+    return out_path
+
 # ======================================================
 # MAIN EXECUTION
 # ======================================================
@@ -249,6 +292,7 @@ async def main():
     parser.add_argument("--emotion", "-e", default="all", choices=["all"] + list(EMOTION_PRESETS.keys()))
     parser.add_argument("--voice", "-v", default=VOICE_NAME)
     parser.add_argument("--ext", default="mp3", help="Output file format (mp3 or wav)")
+    parser.add_argument("--multi", "-m", default=False, action="store_true", help="Synthesize multiple segments")
     args = parser.parse_args()
 
     load_dotenv()
