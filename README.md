@@ -63,7 +63,12 @@ Below are some screenshots of the current version of the application:
 
   ## Running the code
 
+  ### For the the web protopype, in the prototype_react folder: (NOTE: Deprecated, was our first ocncept)
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
+  ## For the rect native app, (web, ios, android) run the following in the native/ directory:
+
+  `npm i` to install the dependencies
+  `npx expo start` to start the development server.
   
