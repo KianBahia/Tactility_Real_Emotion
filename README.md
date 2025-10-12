@@ -48,9 +48,9 @@ Here are the list of the emoji and the corresponding emotion:
 Below are some screenshots of the current version of the application:
 
 <p align="center">
-  <img src="images/image1.png" width="250">
-  <img src="images/image2.png" width="250">
-  <img src="images/image3.png" width="250">
+  <img src="Images/image1.png" width="250">
+  <img src="Images/image2.png" width="250">
+  <img src="Images/image3.png" width="250">
 </p>
 
 
