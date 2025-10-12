@@ -277,7 +277,7 @@ class HumeTTSService {
     if (voiceName) utteranceObj.voice = { name: voiceName };
     if (typeof trailingSilence === 'number') utteranceObj.trailing_silence = trailingSilence;
     if (!isCustomVoice) {
-      utteranceObj.provider = "HUME_AI";
+      utteranceObj.voice.provider = "HUME_AI";
     }
 
     // Return the utterance-level configuration
