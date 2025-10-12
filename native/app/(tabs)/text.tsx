@@ -18,6 +18,22 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useApp } from "@/contexts/AppContext";
 import { humeTTS } from "@/services/HumeTTS";
 
+type Emotion = 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
+
+const emojis = [
+  "🤩", // enthusiasm for a job (formal)
+  "🤣", // funny/sarcastic
+  "🥳", // happy
+  "😡", // angry
+  "😢", // sadly/depression
+  "🙂", // neutral
+  "🫠", // anxious
+  "🤢", // awful
+  "🫣", // shy
+  "😑", // don't care
+  "🥺", // admire
+];
+
 export default function TextScreen() {
   const colorScheme = useColorScheme();
   const { addToHistory, addShortcut, settings } = useApp();
@@ -26,10 +42,8 @@ export default function TextScreen() {
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(-1);
   const isSpeakingRef = useRef(false);
 
-  type Emotion = 'neutral' | 'happy' | 'sad' | 'angry' | 'doubt';
-
   // Presets provided by the user
-  const MOTION_PRESETS: Record<Emotion, { description: string; speed: number; trailing_silence?: number }> = {
+  const EMOTION_PRESETS: Record<Emotion, { description: string; speed: number; trailing_silence?: number }> = {
     neutral: {
       description:
         'Neutral voice with smooth prosody. The speaker sounds calm, balanced, and sonically neutral. Use this preset when you want a simple, clear read without emotional color.',
@@ -62,31 +76,84 @@ export default function TextScreen() {
   };
 
   const parseSegments = (input: string): Array<{ emotion: Emotion; text: string }> => {
-    const regex = /\[(neutral|happy|sad|angry|doubt)\]/g;
-    const parts: Array<{ emotion: Emotion; text: string }> = [];
-    let lastIndex = 0;
-    let currentEmotion: Emotion = 'neutral';
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(input)) !== null) {
-      const idx = match.index;
-      const before = input.slice(lastIndex, idx);
-      if (before.length > 0) parts.push({ emotion: currentEmotion, text: before });
-      currentEmotion = match[1] as Emotion;
-      lastIndex = regex.lastIndex;
-    }
-    const rest = input.slice(lastIndex);
-    if (rest.length > 0) parts.push({ emotion: currentEmotion, text: rest });
-    return parts.map((p) => ({ emotion: p.emotion, text: p.text.trim() })).filter((p) => p.text.length > 0);
-  };
+    // Create a mapping from emojis to emotions
+    const emojiToEmotion: Record<string, Emotion> = {
+      "🤩": "happy",    // enthusiasm for a job (formal)
+      "🤣": "happy",    // funny/sarcastic
+      "🥳": "happy",    // happy
+      "😡": "angry",    // angry
+      "😢": "sad",      // sadly/depression
+      "🙂": "neutral",  // neutral
+      "🫠": "doubt",    // anxious
+      "🤢": "angry",    // awful
+      "🫣": "doubt",    // shy
+      "😑": "neutral",  // don't care
+      "🥺": "sad",      // admire
+    };
 
-  const insertTokenAtCursor = (tokenKey: string) => {
-    const token = `[${tokenKey}]`;
-    const start = selection.start ?? text.length;
-    const end = selection.end ?? text.length;
-    const newText = text.slice(0, start) + token + text.slice(end);
-    setText(newText);
-    const pos = start + token.length;
-    setTimeout(() => setSelection({ start: pos, end: pos }), 0);
+    const segments: Array<{ emotion: Emotion; text: string }> = [];
+    let currentEmotion: Emotion = "neutral"; // Default emotion
+    let currentText = "";
+
+    // Use a regex that properly handles emojis
+    const emojiRegex = /(🤩|🤣|🥳|😡|😢|🙂|🫠|🤢|🫣|😑|🥺)/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = emojiRegex.exec(input)) !== null) {
+      const emoji = match[0];
+      const emojiIndex = match.index;
+      
+      // Add text before the emoji
+      if (emojiIndex > lastIndex) {
+        const textBefore = input.slice(lastIndex, emojiIndex).trim();
+        if (textBefore) {
+          currentText += textBefore;
+        }
+      }
+      
+      // If we have accumulated text, add it with the current emotion
+      if (currentText.trim()) {
+        segments.push({
+          emotion: currentEmotion,
+          text: currentText.trim()
+        });
+        currentText = "";
+      }
+      
+      // Update the current emotion based on the emoji
+      if (emojiToEmotion[emoji]) {
+        currentEmotion = emojiToEmotion[emoji];
+      }
+      
+      lastIndex = emojiIndex + emoji.length;
+    }
+    
+    // Add any remaining text after the last emoji
+    if (lastIndex < input.length) {
+      const remainingText = input.slice(lastIndex).trim();
+      if (remainingText) {
+        currentText += remainingText;
+      }
+    }
+    
+    // Add any remaining text
+    if (currentText.trim()) {
+      segments.push({
+        emotion: currentEmotion,
+        text: currentText.trim()
+      });
+    }
+
+    // If no segments were found, return the entire text as neutral
+    if (segments.length === 0 && input.trim()) {
+      segments.push({
+        emotion: "neutral",
+        text: input.trim()
+      });
+    }
+    
+    return segments;
   };
 
 
@@ -102,29 +169,57 @@ export default function TextScreen() {
     }
 
     const segments = parseSegments(text);
-    for (const seg of segments) {
-      await speakSegment(seg.text, seg.emotion);
-      // wait until playback completed
-      while (humeTTS.isSpeaking()) {
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 120));
-      }
-    }
+    
+    // Send all segments as a single request with multiple utterances
+    await speakMultipleSegments(segments);
   }
 
-  const speakSegment = async (text: string, emotion: Emotion) => {
-    const preset = MOTION_PRESETS[emotion] || MOTION_PRESETS['neutral'];
+  const speakMultipleSegments = async (segments: Array<{ emotion: Emotion; text: string }>) => {
     try {
       // Set API key for Hume TTS
       humeTTS.setApiKey(settings.humeApiKey);
 
+      // Build utterances array with emotion-specific settings
+      const utterances = segments.map(seg => {
+        const preset = EMOTION_PRESETS[seg.emotion] || EMOTION_PRESETS['neutral'];
+        
+        // Remove emojis from the text before sending to API
+        const cleanText = seg.text.replace(/[🤩🤣🥳😡😢🙂🫠🤢🫣😑🥺]/g, '').trim();
+        
+        return {
+          text: cleanText,
+          voice: { name: settings.voice?.name || 'Ava Song' },
+          description: preset.description,
+          speed: preset.speed,
+          trailing_silence: preset.trailing_silence,
+        };
+      });
+
+      // Send single request with all utterances
+      await humeTTS.speakMultiple(utterances);
+    } catch (error) {
+      console.error('Error in speakMultipleSegments:', error);
+      throw error;
+    }
+  }
+  const speakSegment = async (text: string, emotion: Emotion) => {
+    console.log('speakSegment - text:', text, 'emotion:', emotion);
+    const preset = EMOTION_PRESETS[emotion] || EMOTION_PRESETS['neutral'];
+    console.log('speakSegment - preset:', preset);
+    try {
+      // Set API key for Hume TTS
+      humeTTS.setApiKey(settings.humeApiKey);
+
+      // Remove emojis from the text before sending to API
+      const cleanText = text.replace(/[🤩🤣🥳😡😢🙂🫠🤢🫣😑🥺]/g, '').trim();
+      
       // Split text by newlines to get sentences
-      const sentences = text.split("\n").filter((s) => s.trim().length > 0);
+      const sentences = cleanText.split("\n").filter((s) => s.trim().length > 0);
 
       if (!settings.highlightSpokenText || sentences.length === 0) {
         // If highlighting is off or no sentences, just speak the whole text
         setIsPlaying(true);
-        await humeTTS.speak(text, {
+        await humeTTS.speak(cleanText, {
           voice: settings.voice?.name || 'Ava Song',
           emotion: emotion,
           rate: preset.speed,
@@ -148,9 +243,12 @@ export default function TextScreen() {
         setCurrentSentenceIndex(i);
         await humeTTS.speak(sentences[i], {
           voice: settings.voice?.name || 'Ava Song',
-          rate: settings.rate,
+          emotion: emotion,
+          rate: preset.speed,
           pitch: settings.pitch,
           isCustomVoice: settings.voice?.provider === 'CUSTOM_VOICE',
+          description: preset.description,
+          trailing_silence: preset.trailing_silence,
         });
       }
 
@@ -351,19 +449,6 @@ interface EmojiBarProps {
 
 function EmojiBar({ onEmojiPress }: EmojiBarProps) {
   const colorScheme = useColorScheme();
-  const emojis = [
-    "🤩", // enthusiasm for a job (formal)
-    "🤣", // funny/sarcastic
-    "🥳", // happy
-    "😡", // angry
-    "😢", // sadly/depression
-    "🙂", // neutral
-    "🫠", // anxious
-    "🤢", // awful
-    "🫣", // shy
-    "😑", // don't care
-    "🥺", // admire
-  ];
 
   // Split emojis into two rows
   const row1 = emojis.slice(0, 6);
@@ -373,7 +458,7 @@ function EmojiBar({ onEmojiPress }: EmojiBarProps) {
     <View style={styles.emojiContainer}>
       {/* First Row */}
       <View style={styles.emojiRow}>
-        {row1.map((emoji, idx) => (
+        {row1.map((emoji: string, idx: number) => (
           <TouchableOpacity
             key={idx}
             style={[
@@ -397,7 +482,7 @@ function EmojiBar({ onEmojiPress }: EmojiBarProps) {
       </View>
       {/* Second Row - Offset */}
       <View style={styles.emojiRowOffset}>
-        {row2.map((emoji, idx) => (
+        {row2.map((emoji: string, idx: number) => (
           <TouchableOpacity
             key={idx + 6}
             style={[
