@@ -304,84 +304,86 @@ export default function TextScreen() {
       ]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback onPress={dismissKeyboard}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header} />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header} />
 
-          {/* Emoji Bar */}
-          <View
-            style={[
-              styles.emojiBar,
-              {
-                backgroundColor: Colors[colorScheme ?? "light"].background,
-                borderBottomColor: Colors[colorScheme ?? "light"].icon,
-              },
-            ]}
-          >
-            <EmojiBar onEmojiPress={handleEmojiPress} />
+        {/* Emoji Bar */}
+        <View
+          style={[
+            styles.emojiBar,
+            {
+              backgroundColor: Colors[colorScheme ?? "light"].background,
+              borderBottomColor: Colors[colorScheme ?? "light"].icon,
+            },
+          ]}
+        >
+          <EmojiBar onEmojiPress={handleEmojiPress} />
+        </View>
+
+        {/* Scrollable Content */}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Text Area */}
+          <View style={styles.textArea}>
+            {settings.highlightSpokenText &&
+            isPlaying &&
+            currentSentenceIndex >= 0 ? (
+              <View style={styles.highlightContainer}>
+                <ScrollView>
+                  {text.split("\n").map((sentence, index) => (
+                    <Text
+                      key={index}
+                      style={[
+                        styles.highlightedSentence,
+                        {
+                          color:
+                            index === currentSentenceIndex
+                              ? "#000000"
+                              : Colors[colorScheme ?? "light"].text,
+                        },
+                        index === currentSentenceIndex &&
+                          styles.activeSentence,
+                      ]}
+                    >
+                      {sentence}
+                      {index < text.split("\n").length - 1 && "\n"}
+                    </Text>
+                  ))}
+                </ScrollView>
+                <TouchableOpacity
+                  style={styles.editOverlay}
+                  onPress={() => {
+                    handlePause();
+                  }}
+                >
+                  <Text style={styles.editOverlayText}>Tap to edit</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                placeholder="Start typing..."
+                placeholderTextColor={Colors[colorScheme ?? "light"].icon}
+                style={[
+                  styles.textInput,
+                  { color: Colors[colorScheme ?? "light"].text },
+                ]}
+                multiline
+                textAlignVertical="top"
+                autoFocus={false}
+                autoCorrect={true}
+                autoCapitalize="sentences"
+                spellCheck={true}
+              />
+            )}
           </View>
-
-          {/* Scrollable Content */}
-          <ScrollView
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Text Area */}
-            <View style={styles.textArea}>
-              {settings.highlightSpokenText &&
-              isPlaying &&
-              currentSentenceIndex >= 0 ? (
-                <View style={styles.highlightContainer}>
-                  <ScrollView>
-                    {text.split("\n").map((sentence, index) => (
-                      <Text
-                        key={index}
-                        style={[
-                          styles.highlightedSentence,
-                          {
-                            color:
-                              index === currentSentenceIndex
-                                ? "#000000"
-                                : Colors[colorScheme ?? "light"].text,
-                          },
-                          index === currentSentenceIndex &&
-                            styles.activeSentence,
-                        ]}
-                      >
-                        {sentence}
-                        {index < text.split("\n").length - 1 && "\n"}
-                      </Text>
-                    ))}
-                  </ScrollView>
-                  <TouchableOpacity
-                    style={styles.editOverlay}
-                    onPress={() => {
-                      handlePause();
-                    }}
-                  >
-                    <Text style={styles.editOverlayText}>Tap to edit</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TextInput
-                  value={text}
-                  onChangeText={setText}
-                  placeholder="Start typing..."
-                  placeholderTextColor={Colors[colorScheme ?? "light"].icon}
-                  style={[
-                    styles.textInput,
-                    { color: Colors[colorScheme ?? "light"].text },
-                  ]}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus={false}
-                />
-              )}
-            </View>
-          </ScrollView>
+        </ScrollView>
 
           {/* Controls */}
           <View
@@ -443,7 +445,6 @@ export default function TextScreen() {
             </View>
           </View>
         </View>
-      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
