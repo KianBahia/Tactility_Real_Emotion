@@ -145,16 +145,15 @@ export default function SettingsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <TouchableWithoutFeedback onPress={dismissKeyboard}>
-          <ScrollView
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={true}
-            bounces={true}
-            alwaysBounceVertical={false}
-          >
-            <View style={styles.settingsContainer}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+          bounces={true}
+          alwaysBounceVertical={false}
+        >
+          <View style={styles.settingsContainer}>
               {/* Voices Section */}
               <TouchableOpacity
                 style={[
@@ -338,6 +337,7 @@ export default function SettingsScreen() {
                   autoCorrect={false}
                   returnKeyType="done"
                   onSubmitEditing={dismissKeyboard}
+                  spellCheck={false}
                 />
                 <TouchableOpacity
                   style={styles.saveButton}
@@ -351,7 +351,6 @@ export default function SettingsScreen() {
               </View>
             </View>
           </ScrollView>
-        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* Voice Selection Modal */}
