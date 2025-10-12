@@ -257,8 +257,7 @@ async def synthesize_multi(client: AsyncHumeClient, segments: list[dict], ext: s
             utterance_kwargs["trailing_silence"] = segment["trailing_silence"]
         utterance = PostedUtterance(**utterance_kwargs)
         utterances.append(utterance)
-        print(f"🎙️ Generating '{segment['emotion']}' using voice '{VOICE_NAME}'...")
-    print(utterances)
+        print(f"🎙️ Generating '{segment['emotion']}' text '{segment['text']}' using voice '{VOICE_NAME}'...")
 
     stream = client.tts.synthesize_json_streaming(
         utterances=utterances,
