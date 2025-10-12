@@ -6,6 +6,7 @@ import { humeTTS } from "@/services/HumeTTS";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,6 +29,7 @@ export default function HistoryScreen() {
       setIsHumeInitialized(false);
     }
   }, [settings.humeApiKey]);
+
 
   const handleSpeak = async (text: string, index: number) => {
     if (!isHumeInitialized) {
@@ -80,18 +82,28 @@ export default function HistoryScreen() {
   };
 
   const handleDeleteHistory = (index: number) => {
-    Alert.alert(
-      "Delete History Item",
-      "Are you sure you want to delete this item?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteHistory(index),
-        },
-      ]
-    );
+    // For web, use confirm dialog; for mobile, use Alert
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm("Are you sure you want to delete this history item?");
+      if (confirmed) {
+        deleteHistory(index);
+      }
+    } else {
+      Alert.alert(
+        "Delete History Item",
+        "Are you sure you want to delete this item?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              deleteHistory(index);
+            },
+          },
+        ]
+      );
+    }
   };
 
   return (
@@ -174,6 +186,7 @@ export default function HistoryScreen() {
                   <TouchableOpacity
                     style={[styles.speakButton, styles.deleteButton]}
                     onPress={() => handleDeleteHistory(index)}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol name="trash.fill" size={16} color="white" />
                   </TouchableOpacity>
@@ -225,6 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    cursor: "pointer",
   },
   clearHistoryButtonText: {
     color: "white",
@@ -284,9 +298,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#8B5CF6",
     justifyContent: "center",
     alignItems: "center",
+    cursor: "pointer",
   },
   deleteButton: {
     backgroundColor: "#EF4444",
+    cursor: "pointer",
   },
   footer: {
     height: 64,

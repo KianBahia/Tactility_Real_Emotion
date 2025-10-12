@@ -6,6 +6,7 @@ import { humeTTS } from "@/services/HumeTTS";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,7 +17,7 @@ import { storage } from "@/utils/storage"; // ✅ added import
 
 export default function ShortcutsScreen() {
   const colorScheme = useColorScheme();
-  const { shortcuts, deleteShortcut, settings } = useApp();
+  const { shortcuts, deleteShortcut, setShortcuts, settings } = useApp();
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const [isHumeInitialized, setIsHumeInitialized] = useState(false);
   const [localShortcuts, setLocalShortcuts] = useState<string[]>([]); // ✅ local persisted state
@@ -39,11 +40,13 @@ export default function ShortcutsScreen() {
     })();
   }, []);
 
-  // Save shortcuts to storage whenever they change in context
+  // Only sync from context to local state on initial load
   useEffect(() => {
-    storage.setItem("shortcuts", JSON.stringify(shortcuts));
-    setLocalShortcuts(shortcuts);
-  }, [shortcuts]);
+    if (localShortcuts.length === 0 && shortcuts.length > 0) {
+      setLocalShortcuts(shortcuts);
+    }
+  }, [shortcuts, localShortcuts.length]);
+
 
   // Initialize Hume TTS when API key is available
   useEffect(() => {
@@ -91,24 +94,42 @@ export default function ShortcutsScreen() {
   };
 
   const handleDeleteShortcut = (index: number) => {
-    Alert.alert(
-      "Delete Shortcut",
-      "Are you sure you want to delete this shortcut?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            deleteShortcut(index);
-            // remove from local storage immediately
-            const updated = localShortcuts.filter((_, i) => i !== index);
-            setLocalShortcuts(updated);
-            await storage.setItem("shortcuts", JSON.stringify(updated));
+    // For web, use confirm dialog; for mobile, use Alert
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm("Are you sure you want to delete this shortcut?");
+      if (confirmed) {
+        const updated = localShortcuts.filter((_, i) => i !== index);
+        setLocalShortcuts(updated);
+        
+        // Save to storage
+        storage.setItem("shortcuts", JSON.stringify(updated));
+        
+        // Update context to match local state
+        setShortcuts(updated);
+      }
+    } else {
+      Alert.alert(
+        "Delete Shortcut",
+        "Are you sure you want to delete this shortcut?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: () => {
+              const updated = localShortcuts.filter((_, i) => i !== index);
+              setLocalShortcuts(updated);
+              
+              // Save to storage
+              storage.setItem("shortcuts", JSON.stringify(updated));
+              
+              // Update context to match local state
+              setShortcuts(updated);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   return (
@@ -175,6 +196,7 @@ export default function ShortcutsScreen() {
                   <TouchableOpacity
                     style={[styles.actionButton, styles.deleteButton]}
                     onPress={() => handleDeleteShortcut(index)}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol name="trash.fill" size={16} color="white" />
                   </TouchableOpacity>
@@ -283,9 +305,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#3B82F6",
     justifyContent: "center",
     alignItems: "center",
+    cursor: "pointer",
   },
   deleteButton: {
     backgroundColor: "#EF4444",
+    cursor: "pointer",
   },
   footer: {
     height: 64,
