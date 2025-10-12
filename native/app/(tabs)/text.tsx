@@ -600,11 +600,20 @@ export default function TextScreen() {
             },
           ]}
         >
-          {/* Left side - empty for keyboard dismissal */}
-          <View style={styles.controlsLeft} />
+          {/* Left side - Done button */}
+          <View style={styles.controlsLeft}>
+            <TouchableOpacity
+              style={[styles.doneButton, !text && styles.disabledButton]}
+              onPress={dismissKeyboard}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
 
           {/* Center - main control buttons */}
           <View style={styles.controlsCenter}>
+            {/* Play button */}
             <TouchableOpacity
               style={[
                 styles.controlButton,
@@ -615,6 +624,8 @@ export default function TextScreen() {
             >
               <IconSymbol name="play.fill" size={20} color="white" />
             </TouchableOpacity>
+
+            {/* Pause button */}
             <TouchableOpacity
               style={[
                 styles.controlButton,
@@ -625,6 +636,8 @@ export default function TextScreen() {
             >
               <IconSymbol name="pause.fill" size={20} color="white" />
             </TouchableOpacity>
+
+            {/* Add Shortcut button */}
             <TouchableOpacity
               style={[
                 styles.controlButton,
@@ -637,6 +650,7 @@ export default function TextScreen() {
               <IconSymbol name="plus" size={20} color="white" />
             </TouchableOpacity>
           </View>
+
 
           {/* Right side - Clear button */}
           <View style={styles.controlsRight}>
@@ -828,21 +842,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
   },
+
   controlsLeft: {
     flex: 1,
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
+
   controlsCenter: {
+    flex: 2,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
   },
+
   controlsRight: {
     flex: 1,
     alignItems: "flex-end",
+    justifyContent: "center",
   },
+
   controlButton: {
     width: 48,
     height: 48,
@@ -875,5 +898,21 @@ const styles = StyleSheet.create({
   emojiScrollContainer: {
   flexDirection: "row",
   paddingHorizontal: 8,
+  },
+  doneButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: "#6B7280", // gray, like Clear but neutral
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 80,
+    minHeight: 40,
+  },
+
+  doneButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
