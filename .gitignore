@@ -34,5 +34,10 @@ __pycache__/
 # VS Code settings
 .vscode/
 hume_examples/.env
+<<<<<<< HEAD
 
 .env
+=======
+.env
+
+>>>>>>> voice_try
