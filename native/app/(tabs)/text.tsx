@@ -304,7 +304,10 @@ export default function TextScreen() {
       ]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.container}>
+      <TouchableWithoutFeedback 
+        onPress={Platform.OS === 'web' ? undefined : dismissKeyboard}
+      >
+        <View style={styles.container}>
         {/* Header */}
         <View style={styles.header} />
 
@@ -445,6 +448,7 @@ export default function TextScreen() {
             </View>
           </View>
         </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }

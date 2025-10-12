@@ -145,7 +145,10 @@ export default function SettingsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView
+        <TouchableWithoutFeedback 
+          onPress={Platform.OS === 'web' ? undefined : dismissKeyboard}
+        >
+          <ScrollView
           style={styles.content}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -351,6 +354,7 @@ export default function SettingsScreen() {
               </View>
             </View>
           </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* Voice Selection Modal */}
