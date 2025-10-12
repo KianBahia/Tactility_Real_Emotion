@@ -304,10 +304,7 @@ export default function TextScreen() {
       ]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback 
-        onPress={Platform.OS === 'web' ? undefined : dismissKeyboard}
-      >
-        <View style={styles.container}>
+      <View style={styles.container}>
         {/* Header */}
         <View style={styles.header} />
 
@@ -325,130 +322,133 @@ export default function TextScreen() {
         </View>
 
         {/* Scrollable Content */}
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+        <TouchableWithoutFeedback 
+          onPress={Platform.OS === 'web' ? undefined : dismissKeyboard}
         >
-          {/* Text Area */}
-          <View style={styles.textArea}>
-            {settings.highlightSpokenText &&
-            isPlaying &&
-            currentSentenceIndex >= 0 ? (
-              <View style={styles.highlightContainer}>
-                <ScrollView>
-                  {text.split("\n").map((sentence, index) => (
-                    <Text
-                      key={index}
-                      style={[
-                        styles.highlightedSentence,
-                        {
-                          color:
-                            index === currentSentenceIndex
-                              ? "#000000"
-                              : Colors[colorScheme ?? "light"].text,
-                        },
-                        index === currentSentenceIndex &&
-                          styles.activeSentence,
-                      ]}
-                    >
-                      {sentence}
-                      {index < text.split("\n").length - 1 && "\n"}
-                    </Text>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity
-                  style={styles.editOverlay}
-                  onPress={() => {
-                    handlePause();
-                  }}
-                >
-                  <Text style={styles.editOverlayText}>Tap to edit</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TextInput
-                value={text}
-                onChangeText={setText}
-                placeholder="Start typing..."
-                placeholderTextColor={Colors[colorScheme ?? "light"].icon}
-                style={[
-                  styles.textInput,
-                  { color: Colors[colorScheme ?? "light"].text },
-                ]}
-                multiline
-                textAlignVertical="top"
-                autoFocus={false}
-                autoCorrect={true}
-                autoCapitalize="sentences"
-                spellCheck={true}
-              />
-            )}
-          </View>
-        </ScrollView>
-
-          {/* Controls */}
-          <View
-            style={[
-              styles.controls,
-              {
-                backgroundColor: Colors[colorScheme ?? "light"].background,
-                borderTopColor: Colors[colorScheme ?? "light"].icon,
-              },
-            ]}
+          <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            {/* Left side - empty for keyboard dismissal */}
-            <View style={styles.controlsLeft} />
-
-            {/* Center - main control buttons */}
-            <View style={styles.controlsCenter}>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  (!text || isPlaying) && styles.disabledButton,
-                ]}
-                onPress={handlePlay}
-                disabled={!text || isPlaying}
-              >
-                <IconSymbol name="play.fill" size={20} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  !isPlaying && styles.disabledButton,
-                ]}
-                onPress={handlePause}
-                disabled={!isPlaying}
-              >
-                <IconSymbol name="pause.fill" size={20} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.controlButton,
-                  styles.addButton,
-                  !text && styles.disabledButton,
-                ]}
-                onPress={handleAddShortcut}
-                disabled={!text}
-              >
-                <IconSymbol name="plus" size={20} color="white" />
-              </TouchableOpacity>
+            {/* Text Area */}
+            <View style={styles.textArea}>
+              {settings.highlightSpokenText &&
+              isPlaying &&
+              currentSentenceIndex >= 0 ? (
+                <View style={styles.highlightContainer}>
+                  <ScrollView>
+                    {text.split("\n").map((sentence, index) => (
+                      <Text
+                        key={index}
+                        style={[
+                          styles.highlightedSentence,
+                          {
+                            color:
+                              index === currentSentenceIndex
+                                ? "#000000"
+                                : Colors[colorScheme ?? "light"].text,
+                          },
+                          index === currentSentenceIndex &&
+                            styles.activeSentence,
+                        ]}
+                      >
+                        {sentence}
+                        {index < text.split("\n").length - 1 && "\n"}
+                      </Text>
+                    ))}
+                  </ScrollView>
+                  <TouchableOpacity
+                    style={styles.editOverlay}
+                    onPress={() => {
+                      handlePause();
+                    }}
+                  >
+                    <Text style={styles.editOverlayText}>Tap to edit</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TextInput
+                  value={text}
+                  onChangeText={setText}
+                  placeholder="Start typing..."
+                  placeholderTextColor={Colors[colorScheme ?? "light"].icon}
+                  style={[
+                    styles.textInput,
+                    { color: Colors[colorScheme ?? "light"].text },
+                  ]}
+                  multiline
+                  textAlignVertical="top"
+                  autoFocus={false}
+                  autoCorrect={true}
+                  autoCapitalize="sentences"
+                  spellCheck={true}
+                />
+              )}
             </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
 
-            {/* Right side - Clear button */}
-            <View style={styles.controlsRight}>
-              <TouchableOpacity
-                style={[styles.clearButton, !text && styles.disabledButton]}
-                onPress={handleClearText}
-                disabled={!text}
-              >
-                <Text style={styles.clearButtonText}>Clear</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Controls */}
+        <View
+          style={[
+            styles.controls,
+            {
+              backgroundColor: Colors[colorScheme ?? "light"].background,
+              borderTopColor: Colors[colorScheme ?? "light"].icon,
+            },
+          ]}
+        >
+          {/* Left side - empty for keyboard dismissal */}
+          <View style={styles.controlsLeft} />
+
+          {/* Center - main control buttons */}
+          <View style={styles.controlsCenter}>
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                (!text || isPlaying) && styles.disabledButton,
+              ]}
+              onPress={handlePlay}
+              disabled={!text || isPlaying}
+            >
+              <IconSymbol name="play.fill" size={20} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                !isPlaying && styles.disabledButton,
+              ]}
+              onPress={handlePause}
+              disabled={!isPlaying}
+            >
+              <IconSymbol name="pause.fill" size={20} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.controlButton,
+                styles.addButton,
+                !text && styles.disabledButton,
+              ]}
+              onPress={handleAddShortcut}
+              disabled={!text}
+            >
+              <IconSymbol name="plus" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Right side - Clear button */}
+          <View style={styles.controlsRight}>
+            <TouchableOpacity
+              style={[styles.clearButton, !text && styles.disabledButton]}
+              onPress={handleClearText}
+              disabled={!text}
+            >
+              <Text style={styles.clearButtonText}>Clear</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </KeyboardAvoidingView>
   );
 }

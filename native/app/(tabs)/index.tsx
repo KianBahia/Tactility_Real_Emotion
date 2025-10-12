@@ -40,10 +40,14 @@ export default function ShortcutsScreen() {
     })();
   }, []);
 
-  // Only sync from context to local state on initial load
+  // Sync from context to local state when shortcuts change
   useEffect(() => {
-    if (localShortcuts.length === 0 && shortcuts.length > 0) {
+    // Only sync if the context has more items than local state (indicating something was added)
+    if (shortcuts.length > localShortcuts.length) {
+      console.log("Syncing shortcuts from context to local state");
       setLocalShortcuts(shortcuts);
+      // Also save to storage
+      storage.setItem("shortcuts", JSON.stringify(shortcuts));
     }
   }, [shortcuts, localShortcuts.length]);
 
