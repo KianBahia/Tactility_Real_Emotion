@@ -60,9 +60,9 @@ Below are some screenshots of the current version of the application:
   
   
   
-  # Chatbox with Keyboard Design
+  # Tacitlity_Real_Emotion
 
-  This is a code bundle for Chatbox with Keyboard Design. The original project is available at https://www.figma.com/design/c4oskEAKpcHdVX6O68HvXF/Chatbox-with-Keyboard-Design.
+  This is a code bundle for Tacitlity_Real_Emotion. The original project is available at https://www.figma.com/design/c4oskEAKpcHdVX6O68HvXF/Chatbox-with-Keyboard-Design.
 
   ## Running the code
 
