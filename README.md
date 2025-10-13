@@ -62,8 +62,7 @@ Below are some screenshots of the current version of the application:
   
   # Tacitlity_Real_Emotion
 
-  This is a code bundle for Tacitlity_Real_Emotion. The original project is available at https://www.figma.com/design/c4oskEAKpcHdVX6O68HvXF/Chatbox-with-Keyboard-Design.
-
+  This is a code bundle for Tacitlity_Real_Emotion. The original project is available at (https://www.figma.com/make/c4oskEAKpcHdVX6O68HvXF/Tactility_Real_Emotion)
   ## Running the code
 
   ### For the the web protopype, in the prototype_react folder: (NOTE: Deprecated, was our first ocncept)
