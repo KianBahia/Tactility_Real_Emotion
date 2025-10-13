@@ -16,18 +16,21 @@ We integrated the **[Hume AI](https://dev.hume.ai)** API to enable real-time emo
 
 Here are the list of the emoji and the corresponding emotion:
 
-- 🤩 Enthousiasm for a job (formal)
-- 🤣 Funny/sarcastic
+- 😊 Enthousiasm for a job (formal)
+- 🤪 Funny/sarcastic
 - 🥳 Happy
 - 😡 Angry 
 - 😢 Sadly/ depression 
-- 🙂 Neutral
+- 👩‍🎓 Neutral
 - 🫠 Anxious 
 - 🤢 Awful 
-- 🫣 Shy
+- 🙈 Shy
 - 😑 Dont care 
-- 🥺 Admire
-
+- 🤩 Admire
+- 😱 Scared
+- 🥺 Awe
+- 🤔 Doubt
+- 😨 Shock
 ---
 
 # ⚙️ Installation & Usage
