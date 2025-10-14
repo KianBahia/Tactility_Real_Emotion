@@ -14,9 +14,9 @@ We integrated the **[Hume AI](https://dev.hume.ai)** API to enable real-time emo
   - **Highlighting** of the spoken text.  
   - Adjustable **delay** before speech starts.
 
-Here are the list of the emoji and the corresponding emotion:
+Here is the list of the emojis and the corresponding emotion/tone:
 
-- 😊 Enthousiasm for a job (formal)
+- 😊 Enthusiasm for a job (formal)
 - 🤪 Funny/sarcastic
 - 🥳 Happy
 - 😡 Angry 
