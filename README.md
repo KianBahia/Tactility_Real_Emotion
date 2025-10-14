@@ -56,7 +56,8 @@ Below are some screenshots of the current version of the application:
   <img src="Images/image3.png" width="250">
 </p>
 
-
+# App Demo
+The project demo can be viewed via the link below (https://youtube.com/shorts/dpMF2Qc3h5c?si=0dxCHTKZONMK6qOa)
   
   
   
