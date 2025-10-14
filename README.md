@@ -9,10 +9,13 @@ We integrated the **[Hume AI](https://dev.hume.ai)** API to enable real-time emo
 - **Emotion-based TTS**, where emojis at the top define the emotional tone of the spoken sentence.  
 - **Sentence history** to easily replay previously used phrases.  
 - **Settings** section with:
-  - Voice selection and the ability to add **custom voices**.  
+  - Voice selection and the ability to add **custom voices/clone voices**  
   - “**Speak as you type**” mode.  
   - **Highlighting** of the spoken text.  
   - Adjustable **delay** before speech starts.
+  - Enable in **phone call** (coming soon)
+  - Enable in **App video call** (coming soon)
+    
 
 Here is the list of the emojis and the corresponding emotion/tone:
 
