@@ -51,7 +51,7 @@ Here is the list of the emojis and the corresponding emotion/tone:
 Below are some screenshots of the current version of the application:
 
 <p align="center">
-  <img src="Images/image1.png" width="250">
+  <img src="[Images/image1.png](https://share.icloud.com/photos/0f4_jrgOsp6-EpaMS9lk6ct4w)" width="250">
   <img src="Images/image2.png" width="250">
   <img src="Images/image3.png" width="250">
 </p>
