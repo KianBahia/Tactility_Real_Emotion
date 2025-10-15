@@ -26,7 +26,7 @@ Here is the list of the emojis and the corresponding emotion/tone:
 - 😢 Sadly/ depression 
 - 👩‍🎓 Neutral
 - 🫠 Anxious 
-- 🤢 Awful 
+- 🤢 Disgusted 
 - 🙈 Shy
 - 😑 Dont care 
 - 🤩 Admire
