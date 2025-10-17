@@ -54,10 +54,24 @@ Here is the list of the emojis and the corresponding emotion/tone:
 Below are some screenshots of the current version of the application:
 
 <p align="center">
-  <img src="[Images/image1.png](https://share.icloud.com/photos/0f4_jrgOsp6-EpaMS9lk6ct4w)" width="250">
-  <img src="Images/image2.png" width="250">
-  <img src="Images/image3.png" width="250">
+  <figure style="display:inline-block; margin:10px;">
+    <img src="Images/Image1.jpeg" width="250">
+    <figcaption>Setting section</figcaption>
+  </figure>
+  <figure style="display:inline-block; margin:10px;">
+    <img src="Images/Image2.png" width="250">
+    <figcaption>History of text section</figcaption>
+  </figure>
+  <figure style="display:inline-block; margin:10px;">
+    <img src="Images/Image3.png" width="250">
+    <figcaption>Shortcut section</figcaption>
+  </figure>
+  <figure style="display:inline-block; margin:10px;">
+    <img src="Images/Image4.png" width="250">
+    <figcaption>Text input for TTS</figcaption>
+  </figure>
 </p>
+
 
 # 🎥 App Demo
 The project demo can be viewed via the link below (https://youtube.com/shorts/dpMF2Qc3h5c?si=0dxCHTKZONMK6qOa)
